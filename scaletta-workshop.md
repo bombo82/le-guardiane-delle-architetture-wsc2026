@@ -64,7 +64,7 @@ Considerando il live-coding come parte della spiegazione teorica:
 - *Obiettivo*: creare engagement e preparare al lavoro collaborativo
 
 **2. Hands-on 1: Architettura Interna dei Moduli (60 min)**
-- **Teoria minima necessaria (10 min)**: Cos'è l'architettura interna di un modulo (Layered Architecture, Hexagonal/Ports-and-Adapters Architecture, etc.). Perché è importante definirla e proteggerla con AFF per mantenere l'ordine all'interno di ogni Bounded Context.
+- **Teoria minima necessaria (10 min)**: Cos'è l'architettura interna di un modulo (Architettura Esagonale/Ports-and-Adapters). Perché è importante definirla e proteggerla con AFF per mantenere l'ordine all'interno di ogni Bounded Context.
 - **Live-coding dal facilitatore (15 min)**: Scrittura della prima Architectural Fitness Function per verificare il rispetto dell'architettura e del design interno di uno dei moduli di esempio (es. regole che impediscono l'accesso diretto dal layer di presentazione al database, o dependency rules tra porte e adapter in hexagonal).
 - **Esercizio di gruppo (30 min)**: Ogni gruppo esplora il monolite pre-strutturato in moduli, identifica l'architettura interna di almeno un modulo e scrive AFF per proteggerla.
 - **Share Back (5 min)**: ogni gruppo racconta brevemente, in 1 min, problemi e impressioni a seguito della scrittura della prima AFF.
@@ -100,6 +100,6 @@ Idee e spunti su come continuare l'esercizio a casa:
 - Feedback rapido dal pubblico (es. "una cosa che porto a casa" sul tema modularità)
 
 #### Note e Suggerimenti per l'Implementazione
-- **Materiali necessari**: codebase di esempio pronti con chiara struttura modulare (uno per Java, uno per TypeScript, pre-strutturati con Bounded Context e violazioni intenzionali dei confini; esempio per AFF su architettura interna layered/hexagonal), slide, template per le AFF su boundary, lista di tool
+- **Materiali necessari**: codebase di esempio pronti con chiara struttura modulare (uno per Java, uno per TypeScript, pre-strutturati con Bounded Context e violazioni intenzionali dei confini; esempio per AFF su architettura interna esagonale), slide, template per le AFF su boundary, lista di tool
 - **Adattamenti**: i tempi sono indicativi e flessibili; la teoria sulla modularità è prioritaria e non va ridotta
 - **Coinvolgimento continuo**: domande durante la teoria e fare in modo che i gruppi condividano progressi a metà della sessione hands-on principale, focalizzandosi sui boundary

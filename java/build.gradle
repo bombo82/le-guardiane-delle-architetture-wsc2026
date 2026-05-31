@@ -1,0 +1,64 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.ben-manes.versions' version '0.54.0'
+}
+
+group = 'it.giannibombelli'
+version = '0.1.0-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Web (brought in progressively; currently not required for first domain slice — kept for later vertical slices)
+    implementation 'io.javalin:javalin:7.2.2'
+
+    // JSON (required for API DTOs later)
+    implementation 'tools.jackson.core:jackson-databind:3.1.4'
+
+    // Persistence & jOOQ (for GiftCard infrastructure vertical - in-memory SQLite + Flyway + type-safe DSL)
+    implementation 'org.xerial:sqlite-jdbc:3.53.2.0'
+    implementation 'org.flywaydb:flyway-core:12.8.1'
+    implementation 'org.jooq:jooq:3.21.5'
+
+    // Logging (simple SLF4J provider to silence Javalin startup warning)
+    implementation 'org.slf4j:slf4j-simple:2.0.18'
+
+    // Testing (sociable unit tests + future JavalinTest for API slices + ArchUnit)
+    testImplementation 'org.junit.jupiter:junit-jupiter:6.1.0'
+    testImplementation 'org.assertj:assertj-core:3.27.7'
+    // Javalin Test helper (io.javalin:javalin-test) — not a real published artifact in 6.x.
+    // We will introduce proper JavalinTest (via static import or small local utility) only when we reach the first api slice.
+
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Architecture Fitness Functions (active rules ONLY at the very final step per AGENTS.md)
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.2'
+
+    // OpenAPI generation and Swagger UI
+    implementation 'io.javalin.community.openapi:javalin-openapi-plugin:7.2.2'
+    implementation 'io.javalin.community.openapi:javalin-swagger-plugin:7.2.2'
+    annotationProcessor 'io.javalin.community.openapi:openapi-annotation-processor:7.2.2'
+}
+
+application {
+    mainClass = 'it.giannibombelli.wsc2026.Main'
+}
+
+test {
+    useJUnitPlatform()
+    // Every test gets clean in-memory DB via fixture
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-parameters'
+}

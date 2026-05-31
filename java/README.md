@@ -18,17 +18,28 @@ L'esercizio utilizza strumenti leggeri che privilegiano la trasparenza e il cont
 - **Framework**: **Plain Java** per il dominio, evitando astrazioni che possano nascondere violazioni architetturali.
 - **Architettura Interna**: **Esagonale (Ports & Adapters)** organizzata in package `domain`, `application`, `infrastructure` e `api`.
 
+### 📖 Documentazione API (OpenAPI & Swagger UI)
+Il modulo API espone automaticamente una specifica **OpenAPI 3.1** e una GUI **Swagger UI** tramite i plugin ufficiali di Javalin:
+- Specifica JSON disponibile all'endpoint: `/openapi`
+- Interfaccia Swagger UI navigabile su: `/swagger`
+- La documentazione è generata a compile-time tramite annotazioni `@OpenApi` sugli handler, garantendo zero overhead a runtime.
+
 ### 🏗️ Struttura dei Layer
 
 L'implementazione segue una rigorosa separazione delle responsabilità:
 
-- **`domain`**: Contiene i Record Java per gli Aggregati e i Value Objects, insieme alle interfacce delle Porte.
-- **`application`**: Ospita i Service e le Policy (Reactive logic).
-- **`infrastructure`**: Contiene gli Adattatori jOOQ e le configurazioni Flyway.
-- **`api`**: Gestisce le rotte Javalin e la serializzazione JSON.
+- **`domain`**: Contiene le interfacce delle Porte, gli aggregati, i value object e gli eventi.
+- **`application`**: Ospita l'orchestrazione dei flussi e i comandi.
+- **`infrastructure`**: Contiene gli schemi Drizzle e gli adattatori per il database.
+- **`api`**: Gestisce le rotte Express e i DTO di request/response.
 
 ### 🗄️ Strategia di Persistenza
-Ogni Bounded Context (Booking, GiftCard, Payment) gestisce i propri dati in modo isolato tramite file `.sqlite` separati. Questo garantisce l'assenza di join illegali a livello di database e facilita un'eventuale futura estrazione in microservizi.
+Ogni Bounded Context (Booking, GiftCard, Payment) gestisce i propri dati in modo isolato tramite file `.sqlite` separati dentro la cartella `data/<bc>/`:
+
+- `data/giftcard/giftcard.db` — GiftCard BC (file reale, creato al primo `./gradlew run`)
+- `build/test-db/giftcard-test-*.db` — database di test isolati (mai committati)
+
+Questo garantisce l'assenza di join illegali a livello di database e facilita un'eventuale futura estrazione in microservizi.
 
 ### 🔄 Alternativa AFF e Visualizzazione
 Per chi desidera strumenti di visualizzazione o feedback in tempo reale avanzati:

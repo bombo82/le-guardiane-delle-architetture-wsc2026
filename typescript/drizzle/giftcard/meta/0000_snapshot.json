@@ -1,0 +1,42 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "4193a4ac-25b6-4174-bc0e-30ca7e162d9e",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "gift_card": {
+      "name": "gift_card",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "balance": {
+          "name": "balance",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

@@ -16,7 +16,7 @@ import { PaymentStatus } from '@/payment/domain/payment/paymentStatus.js';
 import { Provider } from '@/payment/domain/payment/provider.js';
 import { ProviderReference } from '@/payment/domain/payment/providerReference.js';
 import { TransactionId } from '@/payment/domain/payment/transactionId.js';
-import { PaymentCompletion } from '@/payment/domain/policies/paymentCompletion.js';
+import { PaymentCompletion } from '@/payment/application/policies/paymentCompletion.js';
 import { SqlitePaymentRepository } from '@/payment/infrastructure/sqlitePaymentRepository.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';
 import { CapturingEventPublisher } from '../../../testsupport/events/capturingEventPublisher.js';

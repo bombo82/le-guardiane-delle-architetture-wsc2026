@@ -10,7 +10,7 @@ import { PaymentEvent } from '../../domain/events/paymentEvent.js';
 import { transactionAccepted } from '../../domain/events/transactionAccepted.js';
 import { transactionRejected } from '../../domain/events/transactionRejected.js';
 import type { TransactionStarted } from '../../domain/events/transactionStarted.js';
-import { PaymentCharging } from '../../domain/policies/paymentCharging.js';
+import { PaymentCharging } from '../../application/services/paymentCharging.js';
 import { PaymentNotFoundException } from '../../domain/payment/paymentNotFoundException.js';
 import { TransactionId } from '../../domain/payment/transactionId.js';
 import type { PaymentProvider } from '../../domain/ports/paymentProvider.js';

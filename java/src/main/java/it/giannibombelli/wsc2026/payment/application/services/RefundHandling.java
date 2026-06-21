@@ -13,7 +13,7 @@ import it.giannibombelli.wsc2026.payment.domain.events.RefundResultEvents;
 import it.giannibombelli.wsc2026.payment.domain.payment.Payment;
 import it.giannibombelli.wsc2026.payment.domain.payment.Transaction;
 import it.giannibombelli.wsc2026.payment.domain.payment.TransactionStatus;
-import it.giannibombelli.wsc2026.payment.domain.policies.TransactionRefund;
+import it.giannibombelli.wsc2026.payment.application.policies.TransactionRefund;
 import it.giannibombelli.wsc2026.payment.domain.ports.PaymentProvider;
 import it.giannibombelli.wsc2026.payment.domain.ports.PaymentProviderResult;
 import it.giannibombelli.wsc2026.payment.domain.ports.PaymentRepository;

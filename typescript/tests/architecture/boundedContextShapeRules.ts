@@ -19,10 +19,10 @@ export function commandsMustImplementCommand(boundedContext: string) {
 
 export function policiesMustImplementPolicy(boundedContext: string) {
     return projectFiles()
-        .inFolder(bcFolder(boundedContext, 'domain/policies'))
+        .inFolder(bcFolder(boundedContext, 'application/policies'))
         .should()
         .adhereTo(
             (file) => /implements\s+Policy\b/.test(file.content),
-            `files in ${bcFolder(boundedContext, 'domain/policies')} should implement Policy`
+            `files in ${bcFolder(boundedContext, 'application/policies')} should implement Policy`
         );
 }

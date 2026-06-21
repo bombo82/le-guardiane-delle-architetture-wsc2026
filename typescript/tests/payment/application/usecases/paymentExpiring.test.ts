@@ -13,7 +13,7 @@ import type { PaymentExpired } from '@/payment/domain/events/paymentResultEvents
 import { Payment } from '@/payment/domain/payment/payment.js';
 import { PaymentId } from '@/payment/domain/payment/paymentId.js';
 import { PaymentStatus } from '@/payment/domain/payment/paymentStatus.js';
-import { PaymentExpiration } from '@/payment/domain/policies/paymentExpiration.js';
+import { PaymentExpiration } from '@/payment/application/policies/paymentExpiration.js';
 import { SqlitePaymentRepository } from '@/payment/infrastructure/sqlitePaymentRepository.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';
 import { CapturingEventPublisher } from '../../../testsupport/events/capturingEventPublisher.js';

@@ -13,7 +13,7 @@ import {
 } from '@/payment/domain/events/paymentResultEvents.js';
 import { TopUpConfirmation } from '@/giftcard/application/services/topUpConfirmation.js';
 import { TopUpConfirming } from '@/giftcard/application/usecases/topUpConfirming.js';
-import { ConfirmTopUpPolicy } from '@/giftcard/domain/policies/confirmTopUpPolicy.js';
+import { ConfirmTopUpPolicy } from '@/giftcard/application/policies/confirmTopUpPolicy.js';
 import { GiftCardId } from '@/giftcard/domain/giftcard/giftCardId.js';
 import { SqliteGiftCardRepository } from '@/giftcard/infrastructure/sqliteGiftCardRepository.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';

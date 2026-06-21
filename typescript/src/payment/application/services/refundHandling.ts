@@ -13,7 +13,7 @@ import type {
 import { PaymentNotFoundException } from '../../domain/payment/paymentNotFoundException.js';
 import { Transaction } from '../../domain/payment/transaction.js';
 import { TransactionStatus } from '../../domain/payment/transactionStatus.js';
-import { TransactionRefund } from '../../domain/policies/transactionRefund.js';
+import { TransactionRefund } from '../../application/policies/transactionRefund.js';
 import type { PaymentProvider } from '../../domain/ports/paymentProvider.js';
 import { PaymentProviderResult } from '../../domain/ports/paymentProviderResult.js';
 import type { PaymentRepository } from '../../domain/ports/paymentRepository.js';

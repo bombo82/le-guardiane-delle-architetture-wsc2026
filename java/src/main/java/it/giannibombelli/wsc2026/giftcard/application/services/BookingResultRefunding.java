@@ -3,7 +3,7 @@ package it.giannibombelli.wsc2026.giftcard.application.services;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents;
 import it.giannibombelli.wsc2026.giftcard.application.commands.RefundGiftCard;
 import it.giannibombelli.wsc2026.giftcard.application.usecases.GiftCardRefunding;
-import it.giannibombelli.wsc2026.giftcard.domain.policies.RefundGiftCardPolicy;
+import it.giannibombelli.wsc2026.giftcard.application.policies.RefundGiftCardPolicy;
 
 import static java.util.Objects.requireNonNull;
 

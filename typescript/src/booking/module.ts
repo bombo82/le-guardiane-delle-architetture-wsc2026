@@ -10,7 +10,7 @@ import { BookingPlacing } from './application/usecases/bookingPlacing.js';
 import { BookingRejecting } from './application/usecases/bookingRejecting.js';
 import { BookingPlaced } from './domain/events/bookingPlaced.js';
 import type { BookingResultEvent, BookingRejected } from './domain/events/bookingResultEvents.js';
-import { PaymentPolicy } from './domain/policies/paymentPolicy.js';
+import { PaymentPolicy } from './application/policies/paymentPolicy.js';
 import { InMemoryBookingEventBus } from './infrastructure/inMemoryBookingEventBus.js';
 import { SqliteBookingRepository } from './infrastructure/sqliteBookingRepository.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';

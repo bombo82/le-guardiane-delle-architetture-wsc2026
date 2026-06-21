@@ -3,7 +3,7 @@ import { Description } from '@/common/domain/primitive/description.js';
 import { Money } from '@/common/domain/primitive/money.js';
 import { BookingConfirming } from '@/booking/application/usecases/bookingConfirming.js';
 import { BookingRejecting } from '@/booking/application/usecases/bookingRejecting.js';
-import { PaymentPolicy } from '@/booking/domain/policies/paymentPolicy.js';
+import { PaymentPolicy } from '@/booking/application/policies/paymentPolicy.js';
 import { PaymentResultOutcome } from '@/booking/application/services/paymentResultOutcome.js';
 import { SqliteBookingRepository } from '@/booking/infrastructure/sqliteBookingRepository.js';
 import { DatabaseSetup } from '../../../testsupport/databaseSetup.js';

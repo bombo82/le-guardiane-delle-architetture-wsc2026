@@ -5,7 +5,7 @@ import it.giannibombelli.wsc2026.common.domain.primitive.Timestamp;
 import it.giannibombelli.wsc2026.payment.domain.events.PaymentDeadlineReached;
 import it.giannibombelli.wsc2026.payment.domain.events.PaymentEvent;
 import it.giannibombelli.wsc2026.payment.domain.payment.Payment;
-import it.giannibombelli.wsc2026.payment.domain.policies.PaymentExpiration;
+import it.giannibombelli.wsc2026.payment.application.policies.PaymentExpiration;
 import it.giannibombelli.wsc2026.payment.domain.ports.PaymentRepository;
 
 import java.util.List;

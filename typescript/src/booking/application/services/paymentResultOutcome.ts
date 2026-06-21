@@ -3,7 +3,7 @@
 
 import type { PaymentResultEvent } from '@/payment/domain/events/paymentResultEvents.js';
 import { match } from 'ts-pattern';
-import { PaymentPolicy } from '../../domain/policies/paymentPolicy.js';
+import { PaymentPolicy } from '../../application/policies/paymentPolicy.js';
 import { BookingConfirming } from '../usecases/bookingConfirming.js';
 import { BookingRejecting } from '../usecases/bookingRejecting.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';

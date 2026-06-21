@@ -3,7 +3,7 @@ package it.giannibombelli.wsc2026.giftcard.application.services;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents;
 import it.giannibombelli.wsc2026.giftcard.application.commands.CreditGiftCard;
 import it.giannibombelli.wsc2026.giftcard.application.usecases.GiftCardCrediting;
-import it.giannibombelli.wsc2026.giftcard.domain.policies.CreditGiftCardPolicy;
+import it.giannibombelli.wsc2026.giftcard.application.policies.CreditGiftCardPolicy;
 
 import static java.util.Objects.requireNonNull;
 

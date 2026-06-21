@@ -4,7 +4,7 @@ import type { EventPublisher } from '@/common/application/events/eventPublisher.
 import { Timestamp } from '@/common/domain/primitive/timestamp.js';
 import { paymentDeadlineReached } from '../domain/events/paymentDeadlineReached.js';
 import type { PaymentEvent } from '../domain/events/paymentEvent.js';
-import { PaymentExpiration } from '../domain/policies/paymentExpiration.js';
+import { PaymentExpiration } from '../application/policies/paymentExpiration.js';
 import type { PaymentRepository } from '../domain/ports/paymentRepository.js';
 import { requireArgument } from '@/common/utils/requireArgument.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';

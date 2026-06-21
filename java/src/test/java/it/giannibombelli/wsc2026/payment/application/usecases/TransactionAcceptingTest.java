@@ -14,7 +14,7 @@ import it.giannibombelli.wsc2026.payment.domain.payment.PaymentStatus;
 import it.giannibombelli.wsc2026.payment.domain.payment.Provider;
 import it.giannibombelli.wsc2026.payment.domain.payment.ProviderReference;
 import it.giannibombelli.wsc2026.payment.domain.payment.TransactionId;
-import it.giannibombelli.wsc2026.payment.domain.policies.PaymentCompletion;
+import it.giannibombelli.wsc2026.payment.application.policies.PaymentCompletion;
 import it.giannibombelli.wsc2026.payment.domain.ports.PaymentRepository;
 import it.giannibombelli.wsc2026.payment.infrastructure.SqlitePaymentRepository;
 import it.giannibombelli.wsc2026.testsupport.DatabaseSetup;

@@ -18,7 +18,7 @@ import { providerFromLabel } from '@/payment/domain/payment/provider.js';
 import { ProviderReference } from '@/payment/domain/payment/providerReference.js';
 import { TransactionId } from '@/payment/domain/payment/transactionId.js';
 import { TransactionStatus } from '@/payment/domain/payment/transactionStatus.js';
-import { TransactionRefund } from '@/payment/domain/policies/transactionRefund.js';
+import { TransactionRefund } from '@/payment/application/policies/transactionRefund.js';
 import type { PaymentProvider } from '@/payment/domain/ports/paymentProvider.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';
 import {

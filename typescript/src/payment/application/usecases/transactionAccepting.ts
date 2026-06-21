@@ -5,7 +5,7 @@ import type { EventSubscriber } from '@/common/application/events/eventSubscribe
 import { PaymentEvent } from '../../domain/events/paymentEvent.js';
 import { TransactionAccepted } from '../../domain/events/transactionAccepted.js';
 import { PaymentNotFoundException } from '../../domain/payment/paymentNotFoundException.js';
-import { PaymentCompletion } from '../../domain/policies/paymentCompletion.js';
+import { PaymentCompletion } from '../../application/policies/paymentCompletion.js';
 import type { PaymentRepository } from '../../domain/ports/paymentRepository.js';
 import { requireArgument } from '@/common/utils/requireArgument.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';

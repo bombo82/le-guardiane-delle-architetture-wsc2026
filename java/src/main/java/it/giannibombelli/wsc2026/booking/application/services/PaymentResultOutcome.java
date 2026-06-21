@@ -3,7 +3,7 @@ package it.giannibombelli.wsc2026.booking.application.services;
 import it.giannibombelli.wsc2026.booking.application.commands.BookingConfirmationCommands;
 import it.giannibombelli.wsc2026.booking.application.usecases.BookingConfirming;
 import it.giannibombelli.wsc2026.booking.application.usecases.BookingRejecting;
-import it.giannibombelli.wsc2026.booking.domain.policies.PaymentPolicy;
+import it.giannibombelli.wsc2026.booking.application.policies.PaymentPolicy;
 import it.giannibombelli.wsc2026.payment.domain.events.PaymentResultEvents;
 
 import static it.giannibombelli.wsc2026.booking.application.commands.BookingConfirmationCommands.ConfirmBooking;

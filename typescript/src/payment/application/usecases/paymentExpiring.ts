@@ -7,7 +7,7 @@ import type { PaymentDeadlineReached } from '../../domain/events/paymentDeadline
 import type { PaymentExpired } from '../../domain/events/paymentResultEvents.js';
 
 import { PaymentNotFoundException } from '../../domain/payment/paymentNotFoundException.js';
-import { PaymentExpiration } from '../../domain/policies/paymentExpiration.js';
+import { PaymentExpiration } from '../../application/policies/paymentExpiration.js';
 import type { PaymentRepository } from '../../domain/ports/paymentRepository.js';
 import { requireArgument } from '@/common/utils/requireArgument.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';

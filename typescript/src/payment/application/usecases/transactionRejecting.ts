@@ -7,7 +7,7 @@ import type { PaymentRejected } from '../../domain/events/paymentResultEvents.js
 
 import { TransactionRejected } from '../../domain/events/transactionRejected.js';
 import { PaymentNotFoundException } from '../../domain/payment/paymentNotFoundException.js';
-import { PaymentRejection } from '../../domain/policies/paymentRejection.js';
+import { PaymentRejection } from '../../application/policies/paymentRejection.js';
 import type { PaymentRepository } from '../../domain/ports/paymentRepository.js';
 import { requireArgument } from '@/common/utils/requireArgument.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';

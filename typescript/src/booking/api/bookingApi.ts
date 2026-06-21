@@ -6,7 +6,7 @@ import { generateId } from '@/common/domain/identity/entityId.js';
 import { Description } from '@/common/domain/primitive/description.js';
 import { Money } from '@/common/domain/primitive/money.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';
-import { GiftCardId } from '@/giftcard/domain/giftcard/giftCardId.js';
+import { GiftCardReference } from '../domain/primitive/giftCardReference.js';
 import { BookingQueryService } from '../application/query/bookingQueryService.js';
 import { BookingPlacing } from '../application/usecases/bookingPlacing.js';
 import { BookingId } from '../domain/booking/bookingId.js';
@@ -83,11 +83,11 @@ export class BookingApi {
 
     let amount: Money;
     let description: Description;
-    let giftCardId: GiftCardId;
+    let giftCardReference: GiftCardReference;
     try {
       amount = new Money(Number(request.amount));
       description = new Description(request.description);
-      giftCardId = new GiftCardId(Uuid.fromString(request.giftCardId));
+      giftCardReference = new GiftCardReference(Uuid.fromString(request.giftCardId));
     } catch (error) {
       res.status(400).send(getErrorMessage(error, 'bad request'));
       return;
@@ -97,7 +97,7 @@ export class BookingApi {
       generateId((value) => new BookingId(value)),
       amount,
       description,
-      giftCardId
+      giftCardReference
     );
 
     let event;

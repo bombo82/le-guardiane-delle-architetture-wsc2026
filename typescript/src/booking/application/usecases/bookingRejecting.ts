@@ -27,7 +27,7 @@ export class BookingRejecting implements UseCase<RejectBooking, BookingRejected>
 
     const booking = this.findBooking(command.aggregateId);
 
-    const rejected = booking.reject(command.giftCardId, command.amount);
+    const rejected = booking.reject(command.amount);
 
     this._bookingRepository.save(booking);
     this._eventPublisher.publish(rejected);

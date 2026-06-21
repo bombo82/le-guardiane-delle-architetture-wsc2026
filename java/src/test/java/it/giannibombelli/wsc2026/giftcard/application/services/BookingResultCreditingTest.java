@@ -63,7 +63,7 @@ class BookingResultCreditingTest {
             Money credit = new Money(new BigDecimal("14.00"));
 
             creditGiftCardService.handleBookingResults(
-                new BookingResultEvents.BookingConfirmed(booking.id(), giftCard.id(), credit)
+                new BookingResultEvents.BookingConfirmed(booking.id(), giftCard.id().value(), credit)
             );
 
             Optional<GiftCard> updated = repository.findById(giftCard.id());
@@ -78,7 +78,7 @@ class BookingResultCreditingTest {
             Money credit = new Money(new BigDecimal("9.99"));
 
             creditGiftCardService.handleBookingResults(
-                new BookingResultEvents.BookingRefused(booking.id(), giftCard.id(), credit)
+                new BookingResultEvents.BookingRefused(booking.id(), giftCard.id().value(), credit)
             );
 
             GiftCard after = repository.findById(giftCard.id()).orElseThrow();
@@ -92,7 +92,7 @@ class BookingResultCreditingTest {
             Money amount = new Money(new BigDecimal("5.00"));
 
             creditGiftCardService.handleBookingResults(
-                new BookingResultEvents.BookingRejected(booking.id(), giftCard.id(), amount)
+                new BookingResultEvents.BookingRejected(booking.id(), giftCard.id().value(), amount)
             );
 
             GiftCard persisted = repository.findById(giftCard.id()).orElseThrow();
@@ -106,7 +106,7 @@ class BookingResultCreditingTest {
             Money amount = new Money(new BigDecimal("5.00"));
 
             assertThatThrownBy(() -> creditGiftCardService.handleBookingResults(
-                new BookingResultEvents.BookingConfirmed(booking.id(), nonExisting, amount)
+                new BookingResultEvents.BookingConfirmed(booking.id(), nonExisting.value(), amount)
             ))
                 .isInstanceOf(IllegalStateException.class);
         }

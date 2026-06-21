@@ -123,17 +123,79 @@ Il query layer:
 
 ---
 
-## 4. Cosa non è stato ancora risolto (e perché)
+## 4. Decoupling del riferimento a gift card nel BC `booking`
 
-L'unica violazione rimasta attiva sul branch `solutions` riguarda i confini tra Bounded Context.
+### Problema
 
-### Cross-Bounded Context dependencies
+L'aggregato `Booking` e i suoi eventi di dominio (`BookingPlaced`, `BookingResultEvents`) importavano direttamente `GiftCardId` dal BC `giftcard` (`giftcard.domain.giftcard.GiftCardId`).
 
-`booking` e `giftcard` dipendono direttamente da tipi di `payment` e, parzialmente, tra loro.
+Questa dipendenza rendeva `booking` sensibile ai cambiamenti interni di `giftcard`: un refactor del tipo identificativo della gift card avrebbe propagato il cambiamento in `booking`, rompendo il confine del BC.
 
-**Perché non è stato risolto:** il disegno dei confini tra BC è l'argomento più ampio del workshop. Richiede di introdurre pattern di integrazione come:
+### Soluzione adottata
 
-- eventi di integrazione (separati dagli eventi interni);
+È stato introdotto un value object **proprietà di `booking`**:
+
+```text
+booking.domain.primitive.GiftCardReference
+```
+
+`Booking` ora modella il riferimento a una gift card esterna come un concetto del proprio dominio:
+
+```text
+Booking.place(id, description, giftCardReference)
+Booking.confirm(amount)
+Booking.reject(amount)
+Booking.giftCardReference() -> GiftCardReference
+```
+
+Gli eventi di dominio di `booking` espongono il riferimento come **published language** sotto forma di primitiva (`UUID` in Java, `string` in TypeScript):
+
+```text
+BookingPlaced.giftCardReference: UUID/String
+BookingConfirmed.giftCardReference: UUID/String
+BookingRefused.giftCardReference: UUID/String
+BookingRejected.giftCardReference: UUID/String
+```
+
+Il BC `giftcard`, quando reagisce a questi eventi, traduce la primitiva nel proprio `GiftCardId` solo al proprio confine, nelle policy:
+
+```text
+giftcard.application.policies.CreditGiftCardPolicy
+  → new GiftCardId(event.giftCardReference())
+```
+
+### Motivazione
+
+- **Ogni BC possiede il proprio linguaggio**: `GiftCardReference` rappresenta il concetto "una gift card vista da booking", non il concetto interno di `giftcard`.
+- **Nessun accoppiamento sui tipi di dominio**: `booking` non conosce più `giftcard.GiftCardId`.
+- **Published language stabile**: `UUID`/`String` è un contratto semplice e stabile per l'integrazione.
+- **Traduzione al confine**: la conversione in `GiftCardId` avviene nel BC destinatario, dove il concetto è rilevante.
+
+### Alternative considerate
+
+| Approccio | Pro | Contro |
+|---|---|---|
+| **Shared kernel** (`GiftCardId` in `common`) | Nessuna traduzione; stesso tipo usato da entrambi i BC. | Aumenta l'accoppiamento; un cambiamento del tipo in `giftcard` impatta `booking`; rischia di espandersi in un "big ball of shared kernel". |
+| **Duplicare `GiftCardId` in `booking`** | Rimuove la dipendenza incrociata. | Due classi con lo stesso nome e struttura suggeriscono un'identità di concetto che invece non dovrebbe esistere; confusione nel modello. |
+| **Usare una primitiva nuda (`UUID`/`String`) direttamente in `Booking`** | Massimo decoupling; nessun value object aggiuntivo. | Perde espressività nel linguaggio di dominio di `booking`; il campo diventa un generico identificatore senza semantica. |
+| **Eventi di integrazione separati dagli eventi interni** | Isolamento completo; i BC comunicano solo tramite contratti pubblicati. | Maggiore complessità; richiede un adapter/ACL esplicito per ogni direzione di integrazione. |
+
+L'approccio con `GiftCardReference` è stato scelto come compromesso tra **pulizia del modello di dominio** e **semplicità**: esplicita la relazione tra i due BC senza condividerne i tipi interni.
+
+---
+
+## 5. Cosa non è stato ancora risolto (e perché)
+
+Le violazioni rimaste attive sul branch `solutions` riguardano altre dipendenze cross-BC:
+
+- `booking` dipende da `payment` (`BookingPaymentRequestPolicy`, `BookingRefundRequestPolicy`, `PaymentPolicy`, `PaymentResultOutcome`).
+- `giftcard` dipende da `payment` (`ConfirmTopUpPolicy`, `TopUpPaymentRequestPolicy`, `TopUpConfirmation`) e da `booking` (`CreditGiftCardPolicy`, `RefundGiftCardPolicy`, `BookingResultCrediting`, `BookingResultRefunding`).
+
+### Perché non è stato risolto
+
+Il disegno completo dei confini tra BC è l'argomento più ampio del workshop. Richiede di introdurre pattern di integrazione come:
+
+- eventi di integrazione separati dagli eventi interni;
 - API esposte pubblicamente da ciascun BC;
 - anti-corruption layer per isolare i modelli esterni.
 
@@ -141,6 +203,6 @@ Questo punto viene approfondito nelle soluzioni finali del workshop.
 
 ---
 
-## 5. Evoluzioni future
+## 6. Evoluzioni future
 
 Il branch `feature/usecase-aff-rule` contiene un'ulteriore evoluzione: una regola `useCasesMustImplementUseCase` che verifica che tutte le classi in `application/usecases` implementino l'interfaccia `UseCase`. Quella regola rileva che `PaymentExpiring`, `TransactionAccepting` e `TransactionRejecting` sono in realtà `EventSubscriber`, non use case: apre il discorso su dove collocare gli orchestratori event-driven e su come distinguere use case, servizi applicativi e event handler. Il tema verrà affrontato in un momento successivo del workshop.

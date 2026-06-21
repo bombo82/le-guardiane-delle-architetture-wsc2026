@@ -5,7 +5,7 @@
 import type { Aggregate } from '@/common/domain/model/aggregate.js';
 import { Description } from '@/common/domain/primitive/description.js';
 import { Money } from '@/common/domain/primitive/money.js';
-import { GiftCardId } from '@/giftcard/domain/giftcard/giftCardId.js';
+import { GiftCardReference } from '../primitive/giftCardReference.js';
 import type { BookingResultEvent, BookingRejected } from '../events/bookingResultEvents.js';
 import { bookingConfirmed, bookingRefused, bookingRejected } from '../events/bookingResultEvents.js';
 import { BookingId } from './bookingId.js';
@@ -15,31 +15,30 @@ import { requireArgument } from '@/common/utils/requireArgument.js';
 export class Booking implements Aggregate<BookingId> {
   private readonly _id: BookingId;
   private readonly _description: Description;
-  private readonly _giftCardId: GiftCardId;
+  private readonly _giftCardReference: GiftCardReference;
   private _status: BookingStatus;
 
-  constructor(id: BookingId, description: Description, giftCardId: GiftCardId, status: BookingStatus) {
+  constructor(id: BookingId, description: Description, giftCardReference: GiftCardReference, status: BookingStatus) {
     requireArgument(id, 'id');
     requireArgument(description, 'description');
-    requireArgument(giftCardId, 'giftCardId');
+    requireArgument(giftCardReference, 'giftCardReference');
     requireArgument(status, 'status');
 
     this._id = id;
     this._description = description;
-    this._giftCardId = giftCardId;
+    this._giftCardReference = giftCardReference;
     this._status = status;
   }
 
-  static place(id: BookingId, description: Description, giftCardId: GiftCardId): Booking {
+  static place(id: BookingId, description: Description, giftCardReference: GiftCardReference): Booking {
     requireArgument(id, 'id');
     requireArgument(description, 'description');
-    requireArgument(giftCardId, 'giftCardId');
+    requireArgument(giftCardReference, 'giftCardReference');
 
-    return new Booking(id, description, giftCardId, BookingStatus.PLACED);
+    return new Booking(id, description, giftCardReference, BookingStatus.PLACED);
   }
 
-  confirm(giftCardId: GiftCardId, amount: Money): BookingResultEvent {
-    requireArgument(giftCardId, 'giftCardId');
+  confirm(amount: Money): BookingResultEvent {
     requireArgument(amount, 'amount');
 
     // TODO: implement business rule for confirmation vs refusal
@@ -48,19 +47,18 @@ export class Booking implements Aggregate<BookingId> {
 
     if (canConfirm) {
       this._status = BookingStatus.CONFIRMED;
-      return bookingConfirmed(this._id, giftCardId, amount);
+      return bookingConfirmed(this._id, this._giftCardReference.value.value, amount);
     } else {
       this._status = BookingStatus.REFUSED;
-      return bookingRefused(this._id, giftCardId, amount);
+      return bookingRefused(this._id, this._giftCardReference.value.value, amount);
     }
   }
 
-  reject(giftCardId: GiftCardId, amount: Money): BookingRejected {
-    requireArgument(giftCardId, 'giftCardId');
+  reject(amount: Money): BookingRejected {
     requireArgument(amount, 'amount');
 
     this._status = BookingStatus.REJECTED;
-    return bookingRejected(this._id, giftCardId, amount);
+    return bookingRejected(this._id, this._giftCardReference.value.value, amount);
   }
 
   id(): BookingId {
@@ -71,8 +69,8 @@ export class Booking implements Aggregate<BookingId> {
     return this._description;
   }
 
-  giftCardId(): GiftCardId {
-    return this._giftCardId;
+  giftCardReference(): GiftCardReference {
+    return this._giftCardReference;
   }
 
   status(): BookingStatus {

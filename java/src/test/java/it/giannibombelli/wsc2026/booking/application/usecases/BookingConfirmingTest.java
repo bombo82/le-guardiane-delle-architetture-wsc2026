@@ -5,7 +5,6 @@ import it.giannibombelli.wsc2026.booking.domain.ports.BookingRepository;
 import it.giannibombelli.wsc2026.booking.infrastructure.SqliteBookingRepository;
 import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
-import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCardId;
 import it.giannibombelli.wsc2026.testsupport.AggregateFactory;
 import it.giannibombelli.wsc2026.testsupport.DatabaseSetup;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,24 +52,22 @@ class BookingConfirmingTest {
         void shouldReturnBookingConfirmed() {
             Booking booking = AggregateFactory.createBooking();
             repository.save(booking);
-            GiftCardId giftCardId = EntityId.generate(GiftCardId::new);
             Money amount = new Money(new BigDecimal("75.00"));
 
-            var event = confirmation.invoke(new ConfirmBooking(booking.id(), giftCardId, amount));
+            var event = confirmation.invoke(new ConfirmBooking(booking.id(), booking.giftCardReference(), amount));
 
             assertThat(event).isInstanceOf(it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents.BookingConfirmed.class);
             var confirmed = (it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents.BookingConfirmed) event;
             assertThat(confirmed.aggregateId()).isEqualTo(booking.id());
-            assertThat(confirmed.giftCardId()).isEqualTo(giftCardId);
+            assertThat(confirmed.giftCardReference()).isEqualTo(booking.giftCardReference().value());
             assertThat(confirmed.amount()).isEqualTo(amount);
         }
 
         @Test
         void shouldFailIfBookingNotFound() {
             var nonExistingId = EntityId.generate(it.giannibombelli.wsc2026.booking.domain.booking.BookingId::new);
-            GiftCardId giftCardId = EntityId.generate(GiftCardId::new);
 
-            assertThatThrownBy(() -> confirmation.invoke(new ConfirmBooking(nonExistingId, giftCardId, new Money(new BigDecimal("10.00")))))
+            assertThatThrownBy(() -> confirmation.invoke(new ConfirmBooking(nonExistingId, AggregateFactory.createBooking().giftCardReference(), new Money(new BigDecimal("10.00")))))
                 .isInstanceOf(IllegalStateException.class);
         }
     }

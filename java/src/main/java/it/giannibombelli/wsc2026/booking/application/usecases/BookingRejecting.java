@@ -29,7 +29,7 @@ public final class BookingRejecting implements UseCase<RejectBooking, BookingRes
         Booking booking = bookingRepository.findById(cmd.aggregateId())
             .orElseThrow(() -> new IllegalStateException("Booking not found for rejection: " + cmd.aggregateId()));
 
-        BookingResultEvents.BookingRejected rejected = booking.reject(cmd.giftCardId(), cmd.amount());
+        BookingResultEvents.BookingRejected rejected = booking.reject(cmd.amount());
 
         bookingRepository.save(booking);
         eventPublisher.publish(rejected);

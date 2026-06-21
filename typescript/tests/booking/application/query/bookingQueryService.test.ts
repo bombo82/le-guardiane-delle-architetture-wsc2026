@@ -4,8 +4,9 @@ import { Booking } from '@/booking/domain/booking/booking.js';
 import { BookingId } from '@/booking/domain/booking/bookingId.js';
 import { BookingRepository } from '@/booking/domain/ports/bookingRepository.js';
 import { Description } from '@/common/domain/primitive/description.js';
+import { Uuid } from '@/common/domain/primitive/uuid.js';
 import { generateId } from '@/common/domain/identity/entityId.js';
-import { GiftCardId } from '@/giftcard/domain/giftcard/giftCardId.js';
+import { GiftCardReference } from '@/booking/domain/primitive/giftCardReference.js';
 
 class InMemoryBookingRepository implements BookingRepository {
     private readonly bookings = new Map<string, Booking>();
@@ -24,9 +25,9 @@ describe('BookingQueryService', () => {
         const repository = new InMemoryBookingRepository();
         const queryService = new BookingQueryService(repository);
         const bookingId = generateId((value) => new BookingId(value));
-        const giftCardId = generateId((value) => new GiftCardId(value));
+        const giftCardReference = new GiftCardReference(Uuid.generate());
         const description = new Description('summer stay');
-        const booking = Booking.place(bookingId, description, giftCardId);
+        const booking = Booking.place(bookingId, description, giftCardReference);
         repository.save(booking);
 
         const result = queryService.findById(bookingId);
@@ -34,7 +35,7 @@ describe('BookingQueryService', () => {
         expect(result).not.toBeNull();
         expect(result!.id).toBe(bookingId.value.value);
         expect(result!.description).toBe(description);
-        expect(result!.giftCardId).toBe(giftCardId.value.value);
+        expect(result!.giftCardId).toBe(giftCardReference.value.value);
     });
 
     it('should return null when booking does not exist', () => {

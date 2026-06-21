@@ -27,7 +27,7 @@ export class BookingConfirming implements UseCase<ConfirmBooking, BookingResultE
 
     const booking = this.findBooking(command.aggregateId);
 
-    const result = booking.confirm(command.giftCardId, command.amount);
+    const result = booking.confirm(command.amount);
 
     this._bookingRepository.save(booking);
     this._eventPublisher.publish(result);

@@ -4,11 +4,11 @@ import it.giannibombelli.wsc2026.booking.application.commands.PlaceBooking;
 import it.giannibombelli.wsc2026.booking.domain.booking.Booking;
 import it.giannibombelli.wsc2026.booking.domain.booking.BookingId;
 import it.giannibombelli.wsc2026.booking.domain.ports.BookingRepository;
+import it.giannibombelli.wsc2026.booking.domain.primitive.GiftCardReference;
 import it.giannibombelli.wsc2026.booking.infrastructure.SqliteBookingRepository;
 import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.Description;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
-import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCardId;
 import it.giannibombelli.wsc2026.testsupport.DatabaseSetup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -56,15 +57,15 @@ class BookingPlacingTest {
             BookingId bookingId = EntityId.generate(BookingId::new);
             Money amount = new Money(new BigDecimal("123.45"));
             Description description = new Description("Some description");
-            GiftCardId giftCardId = EntityId.generate(GiftCardId::new);
+            GiftCardReference giftCardReference = new GiftCardReference(UUID.randomUUID());
 
-            placement.invoke(new PlaceBooking(bookingId, amount, description, giftCardId));
+            placement.invoke(new PlaceBooking(bookingId, amount, description, giftCardReference));
 
             Optional<Booking> loaded = repository.findById(bookingId);
             assertThat(loaded).isPresent();
             assertThat(loaded.get().id()).isEqualTo(bookingId);
             assertThat(loaded.get().description()).isEqualTo(description);
-            assertThat(loaded.get().giftCardId()).isEqualTo(giftCardId);
+            assertThat(loaded.get().giftCardReference()).isEqualTo(giftCardReference);
         }
     }
 }

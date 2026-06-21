@@ -46,7 +46,7 @@ describe('BookingResultRefunding', () => {
       const bookingId = createBooking();
       const refundAmount = new Money(20);
 
-      service.handleBookingResults(bookingRejected(bookingId, card.id(), refundAmount));
+      service.handleBookingResults(bookingRejected(bookingId, card.id().value.value, refundAmount));
 
       const after = repository.findById(card.id());
       expect(after).not.toBeNull();
@@ -58,7 +58,7 @@ describe('BookingResultRefunding', () => {
       const bookingId = createBooking();
       const amount = new Money(10);
 
-      service.handleBookingResults(bookingConfirmed(bookingId, card.id(), amount));
+      service.handleBookingResults(bookingConfirmed(bookingId, card.id().value.value, amount));
 
       const persisted = repository.findById(card.id());
       expect(persisted).not.toBeNull();
@@ -71,7 +71,7 @@ describe('BookingResultRefunding', () => {
       const amount = new Money(10);
 
       expect(() =>
-        service.handleBookingResults(bookingRejected(bookingId, nonExisting, amount))
+        service.handleBookingResults(bookingRejected(bookingId, nonExisting.value.value, amount))
       ).toThrow();
     });
   });

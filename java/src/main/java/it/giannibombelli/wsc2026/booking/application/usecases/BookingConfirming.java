@@ -29,7 +29,7 @@ public final class BookingConfirming implements UseCase<ConfirmBooking, BookingR
         Booking booking = bookingRepository.findById(cmd.aggregateId())
             .orElseThrow(() -> new IllegalStateException("Booking not found for confirmation: " + cmd.aggregateId()));
 
-        BookingResultEvents result = booking.confirm(cmd.giftCardId(), cmd.amount());
+        BookingResultEvents result = booking.confirm(cmd.amount());
 
         bookingRepository.save(booking);
         eventPublisher.publish(result);

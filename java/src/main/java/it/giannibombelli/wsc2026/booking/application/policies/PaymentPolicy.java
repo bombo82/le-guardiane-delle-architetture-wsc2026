@@ -33,13 +33,13 @@ public final class PaymentPolicy implements Policy<PaymentResultEvents, BookingC
                 Booking booking = findBooking(it.clientReference());
                 yield booking == null
                     ? null
-                    : new ConfirmBooking(bookingIdFrom(it.clientReference()), booking.giftCardId(), it.amount());
+                    : new ConfirmBooking(bookingIdFrom(it.clientReference()), booking.giftCardReference(), it.amount());
             }
             case PaymentRejected it -> {
                 Booking booking = findBooking(it.clientReference());
                 yield booking == null
                     ? null
-                    : new RejectBooking(bookingIdFrom(it.clientReference()), booking.giftCardId(), it.amount());
+                    : new RejectBooking(bookingIdFrom(it.clientReference()), booking.giftCardReference(), it.amount());
             }
             case PaymentExpired it -> null;
         };

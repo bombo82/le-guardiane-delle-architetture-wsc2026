@@ -22,7 +22,7 @@ public final class BookingQueryService {
         return new BookingDetails(
             booking.id().value(),
             booking.description(),
-            booking.giftCardId().value()
+            booking.giftCardReference().value()
         );
     }
 }

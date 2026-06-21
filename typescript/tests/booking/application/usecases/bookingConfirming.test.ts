@@ -6,7 +6,6 @@ import { BookingConfirming } from '@/booking/application/usecases/bookingConfirm
 import { BookingId } from '@/booking/domain/booking/bookingId.js';
 import type { BookingConfirmed } from '@/booking/domain/events/bookingResultEvents.js';
 import { SqliteBookingRepository } from '@/booking/infrastructure/sqliteBookingRepository.js';
-import { GiftCardId } from '@/giftcard/domain/giftcard/giftCardId.js';
 import { DatabaseSetup } from '../../../testsupport/databaseSetup.js';
 import { BookingAggregateFactory } from '../../../testsupport/booking/aggregateFactory.js';
 import type { BookingEvent } from '@/booking/domain/events/bookingEvent.js';
@@ -40,23 +39,22 @@ describe('BookingConfirming', () => {
     it('should return booking confirmed', () => {
       const booking = BookingAggregateFactory.createBooking();
       repository.save(booking);
-      const giftCardId = generateId((value) => new GiftCardId(value));
       const amount = new Money(75);
 
-      const event = confirmation.invoke(confirmBooking(booking.id(), giftCardId, amount));
+      const event = confirmation.invoke(confirmBooking(booking.id(), booking.giftCardReference(), amount));
 
       expect(event.kind).toBe('BookingConfirmed');
       const confirmed = event as BookingConfirmed;
       expect(confirmed.aggregateId).toEqual(booking.id());
-      expect(confirmed.giftCardId).toEqual(giftCardId);
+      expect(confirmed.giftCardReference).toEqual(booking.giftCardReference().value.value);
       expect(confirmed.amount).toEqual(amount);
     });
 
     it('should fail if booking not found', () => {
       const nonExistingId = generateId((value) => new BookingId(value));
-      const giftCardId = generateId((value) => new GiftCardId(value));
+      const booking = BookingAggregateFactory.createBooking();
 
-      expect(() => confirmation.invoke(confirmBooking(nonExistingId, giftCardId, new Money(10)))).toThrow();
+      expect(() => confirmation.invoke(confirmBooking(nonExistingId, booking.giftCardReference(), new Money(10)))).toThrow();
     });
   });
 });

@@ -3,10 +3,10 @@ package it.giannibombelli.wsc2026.booking.domain.booking;
 import it.giannibombelli.wsc2026.common.utils.Require;
 
 import it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents;
+import it.giannibombelli.wsc2026.booking.domain.primitive.GiftCardReference;
 import it.giannibombelli.wsc2026.common.domain.model.Aggregate;
 import it.giannibombelli.wsc2026.common.domain.primitive.Description;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
-import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCardId;
 
 import java.util.Objects;
 
@@ -16,31 +16,30 @@ import static it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvent
 public final class Booking implements Aggregate<BookingId> {
     private final BookingId id;
     private final Description description;
-    private final GiftCardId giftCardId;
+    private final GiftCardReference giftCardReference;
     private BookingStatus status;
 
-    public Booking(BookingId id, Description description, GiftCardId giftCardId, BookingStatus status) {
+    public Booking(BookingId id, Description description, GiftCardReference giftCardReference, BookingStatus status) {
         Require.requireArgument(id, "id");
         Require.requireArgument(description, "description");
-        Require.requireArgument(giftCardId, "giftCardId");
+        Require.requireArgument(giftCardReference, "giftCardReference");
         Require.requireArgument(status, "status");
 
         this.id = id;
         this.description = description;
-        this.giftCardId = giftCardId;
+        this.giftCardReference = giftCardReference;
         this.status = status;
     }
 
-    public static Booking place(BookingId id, Description description, GiftCardId giftCardId) {
+    public static Booking place(BookingId id, Description description, GiftCardReference giftCardReference) {
         Require.requireArgument(id, "id");
         Require.requireArgument(description, "description");
-        Require.requireArgument(giftCardId, "giftCardId");
+        Require.requireArgument(giftCardReference, "giftCardReference");
 
-        return new Booking(id, description, giftCardId, BookingStatus.PLACED);
+        return new Booking(id, description, giftCardReference, BookingStatus.PLACED);
     }
 
-    public BookingResultEvents confirm(GiftCardId giftCardId, Money amount) {
-        Require.requireArgument(giftCardId, "giftCardId");
+    public BookingResultEvents confirm(Money amount) {
         Require.requireArgument(amount, "amount");
 
         // TODO: implement business rule for confirmation vs refusal
@@ -49,19 +48,18 @@ public final class Booking implements Aggregate<BookingId> {
 
         if (canConfirm) {
             status = BookingStatus.CONFIRMED;
-            return new BookingConfirmed(this.id, giftCardId, amount);
+            return new BookingConfirmed(this.id, this.giftCardReference.value(), amount);
         } else {
             status = BookingStatus.REFUSED;
-            return new BookingRefused(this.id, giftCardId, amount);
+            return new BookingRefused(this.id, this.giftCardReference.value(), amount);
         }
     }
 
-    public BookingRejected reject(GiftCardId giftCardId, Money amount) {
-        Require.requireArgument(giftCardId, "giftCardId");
+    public BookingRejected reject(Money amount) {
         Require.requireArgument(amount, "amount");
 
         status = BookingStatus.REJECTED;
-        return new BookingRejected(this.id, giftCardId, amount);
+        return new BookingRejected(this.id, this.giftCardReference.value(), amount);
     }
 
     public BookingId id() {
@@ -72,8 +70,8 @@ public final class Booking implements Aggregate<BookingId> {
         return description;
     }
 
-    public GiftCardId giftCardId() {
-        return giftCardId;
+    public GiftCardReference giftCardReference() {
+        return giftCardReference;
     }
 
     public BookingStatus status() {
@@ -97,7 +95,7 @@ public final class Booking implements Aggregate<BookingId> {
         return "Booking[" +
             "id=" + id + ", " +
             "description=" + description + ", " +
-            "giftCardId=" + giftCardId + ", " +
+            "giftCardReference=" + giftCardReference + ", " +
             "status=" + status +
             ']';
     }

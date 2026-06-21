@@ -19,7 +19,7 @@ export class BookingQueryService {
     return {
       id: booking.id().value.value,
       description: booking.description(),
-      giftCardId: booking.giftCardId().value.value,
+      giftCardId: booking.giftCardReference().value.value,
     };
   }
 }

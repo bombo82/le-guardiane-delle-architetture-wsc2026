@@ -7,7 +7,7 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { eq } from 'drizzle-orm';
 
 import { Description } from '@/common/domain/primitive/description.js';
-import { GiftCardId } from '@/giftcard/domain/giftcard/giftCardId.js';
+import { GiftCardReference } from '../domain/primitive/giftCardReference.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';
 import { Booking } from '../domain/booking/booking.js';
 import { BookingId } from '../domain/booking/bookingId.js';
@@ -33,14 +33,14 @@ export class SqliteBookingRepository implements BookingRepository {
       .values({
         id,
         description: booking.description().value,
-        giftCardId: booking.giftCardId().value.value,
+        giftCardId: booking.giftCardReference().value.value,
         status,
       })
       .onConflictDoUpdate({
         target: bookings.id,
         set: {
           description: booking.description().value,
-          giftCardId: booking.giftCardId().value.value,
+          giftCardId: booking.giftCardReference().value.value,
           status,
         },
       })
@@ -62,7 +62,7 @@ export class SqliteBookingRepository implements BookingRepository {
     return new Booking(
       new BookingId(Uuid.fromString(row.id)),
       new Description(row.description),
-      new GiftCardId(Uuid.fromString(row.giftCardId)),
+      new GiftCardReference(Uuid.fromString(row.giftCardId)),
       BookingStatus[row.status as keyof typeof BookingStatus]
     );
   }

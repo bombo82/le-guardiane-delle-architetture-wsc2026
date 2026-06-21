@@ -5,7 +5,6 @@ import { rejectBooking } from '@/booking/application/commands/bookingConfirmatio
 import { BookingRejecting } from '@/booking/application/usecases/bookingRejecting.js';
 import { BookingId } from '@/booking/domain/booking/bookingId.js';
 import { SqliteBookingRepository } from '@/booking/infrastructure/sqliteBookingRepository.js';
-import { GiftCardId } from '@/giftcard/domain/giftcard/giftCardId.js';
 import { DatabaseSetup } from '../../../testsupport/databaseSetup.js';
 import { BookingAggregateFactory } from '../../../testsupport/booking/aggregateFactory.js';
 import type { BookingEvent } from '@/booking/domain/events/bookingEvent.js';
@@ -39,21 +38,20 @@ describe('BookingRejecting', () => {
     it('should return booking rejected', () => {
       const booking = BookingAggregateFactory.createBooking();
       repository.save(booking);
-      const giftCardId = generateId((value) => new GiftCardId(value));
       const amount = new Money(75);
 
-      const event = rejection.invoke(rejectBooking(booking.id(), giftCardId, amount));
+      const event = rejection.invoke(rejectBooking(booking.id(), booking.giftCardReference(), amount));
 
       expect(event.aggregateId).toEqual(booking.id());
-      expect(event.giftCardId).toEqual(giftCardId);
+      expect(event.giftCardReference).toEqual(booking.giftCardReference().value.value);
       expect(event.amount).toEqual(amount);
     });
 
     it('should fail if booking not found', () => {
       const nonExistingId = generateId((value) => new BookingId(value));
-      const giftCardId = generateId((value) => new GiftCardId(value));
+      const booking = BookingAggregateFactory.createBooking();
 
-      expect(() => rejection.invoke(rejectBooking(nonExistingId, giftCardId, new Money(10)))).toThrow();
+      expect(() => rejection.invoke(rejectBooking(nonExistingId, booking.giftCardReference(), new Money(10)))).toThrow();
     });
   });
 });

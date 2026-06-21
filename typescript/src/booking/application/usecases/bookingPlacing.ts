@@ -24,11 +24,11 @@ export class BookingPlacing implements UseCase<PlaceBooking, BookingPlaced> {
   invoke(command: PlaceBooking): BookingPlaced {
     requireArgument(command, 'command');
 
-    const booking = Booking.place(command.aggregateId, command.description, command.giftCardId);
+    const booking = Booking.place(command.aggregateId, command.description, command.giftCardReference);
 
     this._bookingRepository.save(booking);
 
-    const placed = bookingPlaced(booking.id(), command.amount, booking.description(), booking.giftCardId());
+    const placed = bookingPlaced(booking.id(), command.amount, booking.description(), booking.giftCardReference().value.value);
     this._eventPublisher.publish(placed);
 
     return placed;

@@ -3,9 +3,9 @@ package it.giannibombelli.wsc2026.booking.application.query;
 import it.giannibombelli.wsc2026.booking.domain.booking.Booking;
 import it.giannibombelli.wsc2026.booking.domain.booking.BookingId;
 import it.giannibombelli.wsc2026.booking.domain.ports.BookingRepository;
+import it.giannibombelli.wsc2026.booking.domain.primitive.GiftCardReference;
 import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.Description;
-import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCardId;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -22,9 +22,9 @@ class BookingQueryServiceTest {
         InMemoryBookingRepository repository = new InMemoryBookingRepository();
         BookingQueryService queryService = new BookingQueryService(repository);
         BookingId bookingId = EntityId.generate(BookingId::new);
-        GiftCardId giftCardId = EntityId.generate(GiftCardId::new);
+        GiftCardReference giftCardReference = new GiftCardReference(UUID.randomUUID());
         Description description = new Description("summer stay");
-        Booking booking = Booking.place(bookingId, description, giftCardId);
+        Booking booking = Booking.place(bookingId, description, giftCardReference);
         repository.save(booking);
 
         Optional<BookingDetails> result = queryService.findById(bookingId);
@@ -32,7 +32,7 @@ class BookingQueryServiceTest {
         assertThat(result).isPresent();
         assertThat(result.get().id()).isEqualTo(bookingId.value());
         assertThat(result.get().description()).isEqualTo(description);
-        assertThat(result.get().giftCardId()).isEqualTo(giftCardId.value());
+        assertThat(result.get().giftCardId()).isEqualTo(giftCardReference.value());
     }
 
     @Test

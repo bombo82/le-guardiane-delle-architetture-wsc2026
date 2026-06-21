@@ -157,6 +157,13 @@ export function shouldNotDeclarePrimitiveFields(boundedContext: string) {
         );
 }
 
+function isEventFactoryParameter(node: ts.ParameterDeclaration, filePath: string): boolean {
+    if (!filePath.includes('/events/')) {
+        return false;
+    }
+    return ts.isFunctionDeclaration(node.parent);
+}
+
 export function shouldNotUsePrimitiveParameters(boundedContext: string) {
     return projectFiles()
         .inFolder(targetFolder(boundedContext))
@@ -170,7 +177,7 @@ export function shouldNotUsePrimitiveParameters(boundedContext: string) {
 
                 let valid = true;
                 const visit = (node: ts.Node): void => {
-                    if (ts.isParameter(node) && isPrimitiveType(node.type)) {
+                    if (ts.isParameter(node) && isPrimitiveType(node.type) && !isEventFactoryParameter(node, file.path)) {
                         valid = false;
                     }
                     ts.forEachChild(node, visit);
@@ -178,6 +185,6 @@ export function shouldNotUsePrimitiveParameters(boundedContext: string) {
                 visit(source);
                 return valid;
             },
-            `${boundedContext} domain/application methods/constructors should not use primitive/String/wrapper parameters (enums and enum-like classes excluded)`
+            `${boundedContext} domain/application methods/constructors should not use primitive/String/wrapper parameters (event factory functions and enums excluded)`
         );
 }

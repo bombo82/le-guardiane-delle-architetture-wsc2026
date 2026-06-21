@@ -4,8 +4,8 @@ import it.giannibombelli.wsc2026.booking.domain.booking.Booking;
 import it.giannibombelli.wsc2026.booking.domain.booking.BookingId;
 import it.giannibombelli.wsc2026.booking.domain.booking.BookingStatus;
 import it.giannibombelli.wsc2026.booking.domain.ports.BookingRepository;
+import it.giannibombelli.wsc2026.booking.domain.primitive.GiftCardReference;
 import it.giannibombelli.wsc2026.common.domain.primitive.Description;
-import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCardId;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SQLDialect;
@@ -42,7 +42,7 @@ public final class SqliteBookingRepository implements BookingRepository {
         int updated = dsl.update(BOOKING)
             .set(ID, idStr)
             .set(DESCRIPTION, booking.description().value())
-            .set(GIFT_CARD_ID, booking.giftCardId().value().toString())
+            .set(GIFT_CARD_ID, booking.giftCardReference().value().toString())
             .set(STATUS, statusStr)
             .where(ID.eq(idStr))
             .execute();
@@ -50,7 +50,7 @@ public final class SqliteBookingRepository implements BookingRepository {
         if (updated == 0) {
             dsl.insertInto(BOOKING)
                 .columns(ID, DESCRIPTION, GIFT_CARD_ID, STATUS)
-                .values(idStr, booking.description().value(), booking.giftCardId().value().toString(), statusStr)
+                .values(idStr, booking.description().value(), booking.giftCardReference().value().toString(), statusStr)
                 .execute();
         }
     }
@@ -72,8 +72,8 @@ public final class SqliteBookingRepository implements BookingRepository {
         Record r = rows.getFirst();
         BookingId bookingId = new BookingId(UUID.fromString(r.get(ID)));
         Description description = new Description(r.get(DESCRIPTION));
-        GiftCardId giftCardId = new GiftCardId(UUID.fromString(r.get(GIFT_CARD_ID)));
+        GiftCardReference giftCardReference = new GiftCardReference(UUID.fromString(r.get(GIFT_CARD_ID)));
         BookingStatus status = BookingStatus.valueOf(r.get(STATUS));
-        return Optional.of(new Booking(bookingId, description, giftCardId, status));
+        return Optional.of(new Booking(bookingId, description, giftCardReference, status));
     }
 }

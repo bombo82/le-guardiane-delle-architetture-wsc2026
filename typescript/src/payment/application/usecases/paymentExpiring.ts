@@ -1,5 +1,3 @@
-// Caso d'uso reattivo che fa scadere un pagamento alla scadenza delle 48h.
-
 import type { EventPublisher } from '@/common/application/events/eventPublisher.js';
 import type { EventSubscriber } from '@/common/application/events/eventSubscriber.js';
 import { PaymentEvent } from '../../domain/events/paymentEvent.js';
@@ -7,7 +5,7 @@ import type { PaymentDeadlineReached } from '../../domain/events/paymentDeadline
 import type { PaymentExpired } from '../../domain/events/paymentResultEvents.js';
 
 import { PaymentNotFoundException } from '../../domain/payment/paymentNotFoundException.js';
-import { PaymentExpiration } from '../../domain/policies/paymentExpiration.js';
+import { PaymentExpiration } from '../../application/policies/paymentExpiration.js';
 import type { PaymentRepository } from '../../domain/ports/paymentRepository.js';
 import { requireArgument } from '@/common/utils/requireArgument.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';

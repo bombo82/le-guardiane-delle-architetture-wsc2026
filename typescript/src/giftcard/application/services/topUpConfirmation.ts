@@ -3,7 +3,7 @@
 
 import type { PaymentResultEvent } from '@/payment/domain/events/paymentResultEvents.js';
 import { TopUpConfirming } from '../usecases/topUpConfirming.js';
-import { ConfirmTopUpPolicy } from '../../domain/policies/confirmTopUpPolicy.js';
+import { ConfirmTopUpPolicy } from '../../application/policies/confirmTopUpPolicy.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
 
 export class TopUpConfirmation {

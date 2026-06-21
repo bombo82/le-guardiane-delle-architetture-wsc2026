@@ -1,5 +1,3 @@
-// Servizio applicativo che gestisce le richieste di rimborso contattando il provider.
-
 import { Description } from '@/common/domain/primitive/description.js';
 import { Money } from '@/common/domain/primitive/money.js';
 import type { EventPublisher } from '@/common/application/events/eventPublisher.js';
@@ -13,7 +11,7 @@ import type {
 import { PaymentNotFoundException } from '../../domain/payment/paymentNotFoundException.js';
 import { Transaction } from '../../domain/payment/transaction.js';
 import { TransactionStatus } from '../../domain/payment/transactionStatus.js';
-import { TransactionRefund } from '../../domain/policies/transactionRefund.js';
+import { TransactionRefund } from '../../application/policies/transactionRefund.js';
 import type { PaymentProvider } from '../../domain/ports/paymentProvider.js';
 import { PaymentProviderResult } from '../../domain/ports/paymentProviderResult.js';
 import type { PaymentRepository } from '../../domain/ports/paymentRepository.js';

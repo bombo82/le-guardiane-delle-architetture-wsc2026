@@ -1,6 +1,3 @@
-// Servizio applicativo che carica un Payment, avvia una transazione,
-// invoca il provider e pubblica gli eventi di esito.
-
 import { generateId } from '@/common/domain/identity/entityId.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';
 import type { UseCase } from '@/common/application/usecase.js';
@@ -10,7 +7,7 @@ import { PaymentEvent } from '../../domain/events/paymentEvent.js';
 import { transactionAccepted } from '../../domain/events/transactionAccepted.js';
 import { transactionRejected } from '../../domain/events/transactionRejected.js';
 import type { TransactionStarted } from '../../domain/events/transactionStarted.js';
-import { PaymentCharging } from '../../domain/policies/paymentCharging.js';
+import { PaymentCharging } from '../../application/services/paymentCharging.js';
 import { PaymentNotFoundException } from '../../domain/payment/paymentNotFoundException.js';
 import { TransactionId } from '../../domain/payment/transactionId.js';
 import type { PaymentProvider } from '../../domain/ports/paymentProvider.js';

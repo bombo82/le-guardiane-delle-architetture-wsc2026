@@ -13,8 +13,8 @@ import { PaymentId } from '@/payment/domain/payment/paymentId.js';
 import { PaymentStatus } from '@/payment/domain/payment/paymentStatus.js';
 import { Provider, providerFromLabel } from '@/payment/domain/payment/provider.js';
 import { ProviderReference } from '@/payment/domain/payment/providerReference.js';
-import { PaymentCompletion } from '@/payment/domain/policies/paymentCompletion.js';
-import { PaymentRejection } from '@/payment/domain/policies/paymentRejection.js';
+import { PaymentCompletion } from '@/payment/application/policies/paymentCompletion.js';
+import { PaymentRejection } from '@/payment/application/policies/paymentRejection.js';
 import type { PaymentProvider } from '@/payment/domain/ports/paymentProvider.js';
 import {
   paymentProviderFailure,

@@ -11,7 +11,7 @@ import it.giannibombelli.wsc2026.booking.application.usecases.BookingRejecting;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingEvent;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingPlaced;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents;
-import it.giannibombelli.wsc2026.booking.domain.policies.PaymentPolicy;
+import it.giannibombelli.wsc2026.booking.application.policies.PaymentPolicy;
 import it.giannibombelli.wsc2026.booking.infrastructure.InMemoryBookingEventBus;
 import it.giannibombelli.wsc2026.booking.infrastructure.SqliteBookingRepository;
 import it.giannibombelli.wsc2026.common.application.events.EventBus;

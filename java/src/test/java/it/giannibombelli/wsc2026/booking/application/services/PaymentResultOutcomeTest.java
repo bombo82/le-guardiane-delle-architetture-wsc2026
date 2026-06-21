@@ -3,7 +3,7 @@ package it.giannibombelli.wsc2026.booking.application.services;
 import it.giannibombelli.wsc2026.booking.application.usecases.BookingConfirming;
 import it.giannibombelli.wsc2026.booking.application.usecases.BookingRejecting;
 import it.giannibombelli.wsc2026.booking.domain.booking.Booking;
-import it.giannibombelli.wsc2026.booking.domain.policies.PaymentPolicy;
+import it.giannibombelli.wsc2026.booking.application.policies.PaymentPolicy;
 import it.giannibombelli.wsc2026.booking.domain.ports.BookingRepository;
 import it.giannibombelli.wsc2026.booking.infrastructure.SqliteBookingRepository;
 import it.giannibombelli.wsc2026.common.domain.primitive.Description;

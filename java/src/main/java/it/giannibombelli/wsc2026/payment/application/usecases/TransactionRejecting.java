@@ -9,7 +9,7 @@ import it.giannibombelli.wsc2026.payment.domain.events.PaymentEvent;
 import it.giannibombelli.wsc2026.payment.domain.events.PaymentResultEvents;
 import it.giannibombelli.wsc2026.payment.domain.events.TransactionRejected;
 import it.giannibombelli.wsc2026.payment.domain.payment.Payment;
-import it.giannibombelli.wsc2026.payment.domain.policies.PaymentRejection;
+import it.giannibombelli.wsc2026.payment.application.policies.PaymentRejection;
 import it.giannibombelli.wsc2026.payment.domain.ports.PaymentRepository;
 
 import static java.util.Objects.requireNonNull;

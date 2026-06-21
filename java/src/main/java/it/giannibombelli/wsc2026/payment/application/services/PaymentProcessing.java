@@ -13,7 +13,7 @@ import it.giannibombelli.wsc2026.payment.domain.events.TransactionStarted;
 import it.giannibombelli.wsc2026.payment.domain.payment.Payment;
 import it.giannibombelli.wsc2026.payment.domain.payment.Provider;
 import it.giannibombelli.wsc2026.payment.domain.payment.TransactionId;
-import it.giannibombelli.wsc2026.payment.domain.policies.PaymentCharging;
+import it.giannibombelli.wsc2026.payment.application.services.PaymentCharging;
 import it.giannibombelli.wsc2026.payment.domain.ports.PaymentProvider;
 import it.giannibombelli.wsc2026.payment.domain.ports.PaymentProviderResult;
 import it.giannibombelli.wsc2026.payment.domain.ports.PaymentRepository;

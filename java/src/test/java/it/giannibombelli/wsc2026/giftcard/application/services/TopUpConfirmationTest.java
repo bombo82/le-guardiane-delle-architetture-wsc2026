@@ -6,7 +6,7 @@ import it.giannibombelli.wsc2026.common.domain.primitive.Money;
 import it.giannibombelli.wsc2026.giftcard.application.usecases.TopUpConfirming;
 import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCard;
 import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCardId;
-import it.giannibombelli.wsc2026.giftcard.domain.policies.ConfirmTopUpPolicy;
+import it.giannibombelli.wsc2026.giftcard.application.policies.ConfirmTopUpPolicy;
 import it.giannibombelli.wsc2026.giftcard.domain.ports.GiftCardRepository;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.SqliteGiftCardRepository;
 import it.giannibombelli.wsc2026.payment.domain.events.PaymentResultEvents;

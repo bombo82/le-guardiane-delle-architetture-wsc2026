@@ -9,13 +9,13 @@
 
 | Implementazione | Test AFF totali | Falliti | Passati |
 |---|---|---|---|
-| Java | 33 | **9** | 24 |
-| TypeScript | 34 | **9** | 25 |
+| Java | 33 | **4** | 29 |
+| TypeScript | 34 | **4** | 30 |
 
 Le violazioni si concentrano in **tre aree**:
 
-1. **Layer interni esagonali** — il layer `domain` vede il layer `application` (policy → command) e l'`api` vede l'`infrastructure` (handler → repository concreto).
-2. **Shape rules** — una policy nel BC `payment` non implementa l'interfaccia `Policy`.
+1. **Layer interni esagonali** — l'`api` dipende direttamente dall'`infrastructure` (handler → repository concreto).
+2. **Shape rules** — nessuna violazione attiva; `PaymentCharging` è stato ricollocato in `application/services` e tutte le policy implementano `Policy`.
 3. **Confini tra Bounded Context** — `booking` e `giftcard` dipendono direttamente da altri BC.
 
 ---
@@ -26,51 +26,25 @@ Le violazioni si concentrano in **tre aree**:
 
 | BC | Regola AFF | Stato | Dettaglio |
 |---|---|---|---|
-| `booking` | `domain` non dipende da outer layers | ❌ Fallita | `PaymentPolicy` (domain) dipende da `BookingConfirmationCommands` (application). |
+| `booking` | `domain` non dipende da outer layers | ✅ OK | Le policy sono state spostate in `application/policies`. |
 | `booking` | `api` non dipende da `infrastructure` | ❌ Fallita | `BookingApi` dipende direttamente da `SqliteBookingRepository`. |
 | `booking` | `application` non dipende da adapter | ✅ OK | — |
 | `booking` | `infrastructure` non dipende da `api` | ✅ OK | — |
-| `giftcard` | `domain` non dipende da outer layers | ❌ Fallita | Policy in `domain/policies` dipendono da command in `application/commands`. |
+| `giftcard` | `domain` non dipende da outer layers | ✅ OK | Le policy sono state spostate in `application/policies`. |
 | `giftcard` | `api` non dipende da `infrastructure` | ❌ Fallita | `GiftCardApi` dipende direttamente da `SqliteGiftCardRepository`. |
 | `giftcard` | `application` non dipende da adapter | ✅ OK | — |
 | `giftcard` | `infrastructure` non dipende da `api` | ✅ OK | — |
-| `payment` | `domain` non dipende da outer layers | ❌ Fallita | Policy in `domain/policies` dipendono da command in `application/commands`. |
+| `payment` | `domain` non dipende da outer layers | ✅ OK | Le policy sono state spostate in `application/policies`. |
 | `payment` | `api` non dipende da `infrastructure` | ✅ OK | — |
 | `payment` | `application` non dipende da adapter | ✅ OK | — |
 | `payment` | `infrastructure` non dipende da `api` | ✅ OK | — |
-| `common` | `domain` non dipende da `application`/`module` | ❌ Fallita | `Policy` (common.domain.model) dipende da `Command` (common.application). |
-
-#### Pattern ricorrente: domain → application
-
-La violazione più diffusa all'interno dei BC (e di `common`) è che il layer `domain` dipende dal layer `application`.
-
-##### Nei BC: policy del domain che producono command dell'application
-
-```text
-domain.policies.*Policy
-  → application.commands.*Command
-```
-
-Esempi concreti:
-
-- `booking.domain.policies.PaymentPolicy` → `booking.application.commands.BookingConfirmationCommands`
-- `giftcard.domain.policies.ConfirmTopUpPolicy` → `giftcard.application.commands.ConfirmTopUp`
-- `giftcard.domain.policies.CreditGiftCardPolicy` → `giftcard.application.commands.CreditGiftCard`
-- `giftcard.domain.policies.RefundGiftCardPolicy` → `giftcard.application.commands.RefundGiftCard`
-- `payment.domain.policies.PaymentCompletion` → `payment.application.commands.AcceptTransaction`
-- `payment.domain.policies.PaymentExpiration` → `payment.application.commands.ExpirePayment`
-- `payment.domain.policies.PaymentRejection` → `payment.application.commands.RejectTransaction`
-- `payment.domain.policies.TransactionRefund` → `payment.application.commands.RefundTransaction`
+| `common` | `domain` non dipende da `application`/`module` | ✅ OK | L'interfaccia `Policy` è stata spostata in `common.application`. |
 
 > **Nota didattica — dove collocare le policy?**  
-> Le policy non sono logica di dominio pura: sono **orchestrazione reattiva** che, ricevuto un evento, decide quale comando eseguire. Concettualmente appartengono quindi al layer `application`, anche quando fisicamente risiedono nel package `domain.policies`. Collocarle in `application.policies` (o in `application.services` se agiscono da event handler) risolve la dipendenza verso i command e mantiene il domain isolato dagli use case.
-
-##### In `common`: `Policy` del domain che dipende da `Command` dell'application
-
-```text
-common.domain.model.Policy<C extends Command>
-  → common.application.Command
-```
+> Le policy non sono logica di dominio pura: sono **orchestrazione reattiva** che, ricevuto un evento, decide quale comando eseguire. Concettualmente appartengono quindi al layer `application`. Nel corso della soluzione:
+> - le policy di ciascun BC sono state spostate da `domain.policies` ad `application.policies`;
+> - l'interfaccia `Policy` è stata spostata da `common.domain.model` a `common.application`;
+> - `PaymentCharging`, che non restituiva un command ma invocava direttamente il provider, è stato ricollocato in `payment.application.services`.
 
 #### Pattern: API che bypassa il layer application/query
 
@@ -93,12 +67,12 @@ giftcard.api.GiftCardApi
 
 | BC | Regola AFF | Stato | Dettaglio |
 |---|---|---|---|
-| `payment` | Tutte le policy concrete implementano `Policy` | ❌ Fallita | `payment.domain.policies.PaymentCharging` non implementa `Policy`. |
+| `payment` | Tutte le policy concrete implementano `Policy` | ✅ OK | Le policy sono in `application/policies` e implementano `Policy`; `PaymentCharging` è stato ricollocato in `application/services`. |
 | `payment` | Tutti i command implementano `Command` | ✅ OK | — |
 | `booking` / `giftcard` | Shape rules analoghe | ✅ OK | — |
 
 > **Nota didattica — `PaymentCharging` e lo scope del BC `payment`**  
-> `PaymentCharging` non implementa `Policy` perché non restituisce un `Command`: riceve `TransactionStarted` e restituisce `PaymentProviderResult`, interagendo direttamente con il provider esterno. Nel contesto del workshop il BC `payment` è parzialmente out-of-scope: gli adapter verso i payment provider reali (PayPal, Klarna, ecc.) non sono ancora integrati. Questa violazione va quindi rivalutata quando tali adapter verranno creati e il ruolo di `PaymentCharging` sarà chiaramente quello di adapter/processor piuttosto che di policy di dominio.
+> `PaymentCharging` non implementava `Policy` perché non restituisce un `Command`: riceve `TransactionStarted` e restituisce `PaymentProviderResult`, interagendo direttamente con il provider esterno. È stato quindi ricollocato in `payment.application.services`, fuori dal package delle policy. Nel contesto del workshop il BC `payment` è parzialmente out-of-scope: gli adapter verso i payment provider reali (PayPal, Klarna, ecc.) non sono ancora integrati. Il ruolo di `PaymentCharging` andrà rivalutato quando tali adapter verranno creati.
 
 ---
 
@@ -205,23 +179,13 @@ giftcard
 │   ▼                 ▼                                           │
 │   Infra ◄──X── API  booking, giftcard                           │
 │                                                                 │
-│   Domain ───────────┐                                           │
-│   │                 │  (policy producono command)               │
-│   ▼                 ▼                                           │
-│   Application ◄──X── Domain  booking, giftcard, payment         │
-│                                                                 │
-│   Common.Domain ────┐                                           │
-│   │                 │  (Policy dipende da Command)              │
-│   ▼                 ▼                                           │
-│   Common.Application ◄──X── Common.Domain                       │
-│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
-│                     VIOLAZIONI SHAPE RULES                      │
+│                     SHAPE RULES                                 │
 ├─────────────────────────────────────────────────────────────────┤
-│  payment.domain.policies.PaymentCharging                        │
-│    non implementa common.domain.model.Policy        ❌          │
+│  Policy in application/policies implementano Policy     ✅      │
+│  PaymentCharging ricollocato in application/services    ✅      │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -243,10 +207,7 @@ giftcard
 
 | Violazione | Perché è un problema | Effetto sul refactoring |
 |---|---|---|
-| Domain → Application | Il cuore del dominio conosce i dettagli dei casi d'uso, invertendo la dipendenza esagonale. | Il dominio diventa fragile al variare degli use case. |
 | API → Infrastructure | L'adapter di ingresso conosce l'adapter di uscita, bypassando la porta. | Impossibile sostituire il repository senza toccare l'handler HTTP. |
-| Common.Domain → Common.Application | L'astrazione condivisa più interna dipende da un concetto del layer superiore. | Il common non può più essere riutilizzato senza trascinare `Command`. |
-| `PaymentCharging` non implementa `Policy` | Inconsistenza nel modello policy; alcune classi sfuggono al contratto. | Regole generiche sulle policy non si applicano a tutte le istanze. |
 | Cross-BC dependencies | I BC non sono più isolati; un cambiamento in `payment` si propaga in `booking` e `giftcard`. | Rottura del confine modulare; difficile estrarre un BC in micro-servizio. |
 
 ---
@@ -254,5 +215,5 @@ giftcard
 ## Note
 
 - I test AFF che rilevano queste violazioni sono **attivi** (non `@Disabled`) sia in Java che in TypeScript.
-- Le violazioni sono **deliberatamente** presenti nel branch `main` come materiale del workshop.
-- Per il branch di riferimento con le violazioni risolte, consultare `solution` (solo post-esercizio).
+- Le violazioni rimanenti sono quelle presenti nel branch `solutions` a valle dello spostamento delle policy in `application`.
+- Il branch `feature/usecase-aff-rule` contiene invece l'evoluzione con la regola `useCasesMustImplementUseCase`, da approfondire in un momento successivo del workshop.

@@ -2,7 +2,7 @@ package it.giannibombelli.wsc2026.architecture;
 
 import com.tngtech.archunit.lang.ArchRule;
 import it.giannibombelli.wsc2026.common.application.Command;
-import it.giannibombelli.wsc2026.common.domain.model.Policy;
+import it.giannibombelli.wsc2026.common.application.Policy;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 
@@ -25,7 +25,7 @@ public final class BoundedContextShapeRules {
 
     public static ArchRule policiesMustImplementPolicy(String boundedContextPackage) {
         return classes()
-            .that().resideInAPackage(boundedContextPackage + ".domain.policies..")
+            .that().resideInAPackage(boundedContextPackage + ".application.policies..")
             .and().areNotInterfaces()
             .should().implement(Policy.class)
             .because("every concrete policy in " + boundedContextPackage + " must implement Policy");

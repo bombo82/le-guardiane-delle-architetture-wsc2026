@@ -13,10 +13,10 @@ import it.giannibombelli.wsc2026.giftcard.application.services.TopUpConfirmation
 import it.giannibombelli.wsc2026.giftcard.application.usecases.*;
 import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardEvent;
 import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardTopUpRequested;
-import it.giannibombelli.wsc2026.giftcard.domain.policies.ConfirmTopUpPolicy;
-import it.giannibombelli.wsc2026.giftcard.domain.policies.CreditGiftCardPolicy;
-import it.giannibombelli.wsc2026.giftcard.domain.policies.RefundGiftCardPolicy;
-import it.giannibombelli.wsc2026.giftcard.domain.policies.TopUpPaymentRequestPolicy;
+import it.giannibombelli.wsc2026.giftcard.application.policies.ConfirmTopUpPolicy;
+import it.giannibombelli.wsc2026.giftcard.application.policies.CreditGiftCardPolicy;
+import it.giannibombelli.wsc2026.giftcard.application.policies.RefundGiftCardPolicy;
+import it.giannibombelli.wsc2026.giftcard.application.policies.TopUpPaymentRequestPolicy;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.InMemoryGiftCardEventBus;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.SqliteGiftCardRepository;
 

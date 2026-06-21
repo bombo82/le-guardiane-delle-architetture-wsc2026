@@ -2,7 +2,7 @@
 // Violazione cross-BC didattica: GiftCard non dovrebbe importare tipi da Booking.
 
 import type { BookingResultEvent } from '@/booking/domain/events/bookingResultEvents.js';
-import { RefundGiftCardPolicy } from '../../domain/policies/refundGiftCardPolicy.js';
+import { RefundGiftCardPolicy } from '../../application/policies/refundGiftCardPolicy.js';
 import { GiftCardRefunding } from '../usecases/giftCardRefunding.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
 

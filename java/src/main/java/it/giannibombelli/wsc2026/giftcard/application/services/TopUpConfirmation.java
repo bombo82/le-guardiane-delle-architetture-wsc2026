@@ -2,7 +2,7 @@ package it.giannibombelli.wsc2026.giftcard.application.services;
 
 import it.giannibombelli.wsc2026.giftcard.application.commands.ConfirmTopUp;
 import it.giannibombelli.wsc2026.giftcard.application.usecases.TopUpConfirming;
-import it.giannibombelli.wsc2026.giftcard.domain.policies.ConfirmTopUpPolicy;
+import it.giannibombelli.wsc2026.giftcard.application.policies.ConfirmTopUpPolicy;
 import it.giannibombelli.wsc2026.payment.domain.events.PaymentResultEvents;
 
 import static java.util.Objects.requireNonNull;

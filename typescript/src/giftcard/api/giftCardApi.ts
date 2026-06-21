@@ -1,5 +1,4 @@
 // API pubbliche del GiftCard Bounded Context.
-// Violazione didattica: l'API dipende direttamente dall'infrastructure repository.
 
 import express, { type Express, type Request, type Response } from 'express';
 import { getErrorMessage } from '@/common/api/errorMessage.js';
@@ -7,7 +6,7 @@ import { generateId } from '@/common/domain/identity/entityId.js';
 import { Money } from '@/common/domain/primitive/money.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';
 import { GiftCardId } from '../domain/giftcard/giftCardId.js';
-import { SqliteGiftCardRepository } from '../infrastructure/sqliteGiftCardRepository.js';
+import { GiftCardQueryService } from '../application/query/giftCardQueryService.js';
 import { GiftCardIssuing } from '../application/usecases/giftCardIssuing.js';
 import { TopUpRequesting } from '../application/usecases/topUpRequesting.js';
 import { requestGiftCardTopUp } from '../application/commands/requestGiftCardTopUp.js';
@@ -17,12 +16,12 @@ import { toGiftCardResponse } from './giftCardResponse.js';
 
 export class GiftCardApi {
   private readonly _giftCardIssuing: GiftCardIssuing;
-  private readonly _giftCardRepository: SqliteGiftCardRepository;
+  private readonly _giftCardQueryService: GiftCardQueryService;
   private readonly _topUpRequesting: TopUpRequesting;
 
-  constructor(giftCardIssuing: GiftCardIssuing, giftCardRepository: SqliteGiftCardRepository, topUpRequesting: TopUpRequesting) {
+  constructor(giftCardIssuing: GiftCardIssuing, giftCardQueryService: GiftCardQueryService, topUpRequesting: TopUpRequesting) {
     this._giftCardIssuing = giftCardIssuing;
-    this._giftCardRepository = giftCardRepository;
+    this._giftCardQueryService = giftCardQueryService;
     this._topUpRequesting = topUpRequesting;
   }
 
@@ -68,7 +67,7 @@ export class GiftCardApi {
       return;
     }
 
-    const card = this._giftCardRepository.findById(cardId);
+    const card = this._giftCardQueryService.findById(cardId);
     if (card === null) {
       res.status(500).send('gift card not found after issuing');
       return;
@@ -143,7 +142,7 @@ export class GiftCardApi {
       return;
     }
 
-    const card = this._giftCardRepository.findById(cardId);
+    const card = this._giftCardQueryService.findById(cardId);
     if (card === null) {
       res.status(500).send('gift card not found after top up');
       return;
@@ -183,7 +182,7 @@ export class GiftCardApi {
       return;
     }
 
-    const card = this._giftCardRepository.findById(id);
+    const card = this._giftCardQueryService.findById(id);
     if (card === null) {
       res.status(404).send();
       return;

@@ -7,6 +7,7 @@ import it.giannibombelli.wsc2026.common.application.events.EventBus;
 import it.giannibombelli.wsc2026.common.application.events.EventSubscriber;
 import it.giannibombelli.wsc2026.common.module.ApplicationModule;
 import it.giannibombelli.wsc2026.giftcard.api.GiftCardApi;
+import it.giannibombelli.wsc2026.giftcard.application.query.GiftCardQueryService;
 import it.giannibombelli.wsc2026.giftcard.application.services.BookingResultCrediting;
 import it.giannibombelli.wsc2026.giftcard.application.services.BookingResultRefunding;
 import it.giannibombelli.wsc2026.giftcard.application.services.TopUpConfirmation;
@@ -70,8 +71,9 @@ public final class GiftCardModule extends ApplicationModule {
     public void configure(JavalinConfig config) {
         GiftCardIssuing giftCardIssuing = new GiftCardIssuing(giftCardRepository);
         TopUpRequesting topUpRequesting = new TopUpRequesting(giftCardRepository, eventBus);
+        GiftCardQueryService giftCardQueryService = new GiftCardQueryService(giftCardRepository);
 
-        GiftCardApi api = new GiftCardApi(giftCardIssuing, giftCardRepository, topUpRequesting);
+        GiftCardApi api = new GiftCardApi(giftCardIssuing, giftCardQueryService, topUpRequesting);
         api.configure(config);
     }
 

@@ -126,3 +126,27 @@ Non è una policy: a fronte di un evento invoca direttamente il provider esterno
 
 - *Forzarlo a implementare `Policy`*: snaturerebbe il componente, il cui esito è un risultato di provider, non un comando.
 - *Spostarlo in `infrastructure` come adapter*: invoca una porta di dominio e viene attivato da eventi applicativi; collocazione prematura finché gli adapter reali non esistono.
+
+### 3. Introduzione del layer `application/query`
+
+**Soluzione**
+
+È stato introdotto un layer `application/query` per ciascun BC (`BookingQueryService` + `BookingDetails`, `GiftCardQueryService` + `GiftCardDetails`). L'`api` ora dipende solo dal query service; il query service dipende dalla porta del repository (`domain.ports`), non dall'implementazione SQLite.
+
+```text
+booking.api.BookingApi
+  → booking.application.query.BookingQueryService
+  → booking.domain.ports.BookingRepository
+  → booking.infrastructure.SqliteBookingRepository
+```
+
+**Motivazione**
+
+Il query layer disaccoppia il contratto HTTP dai dettagli di persistenza, lascia evolvere indipendentemente modello di dominio e DTO di risposta, ripristina la dipendenza esagonale corretta e fornisce un punto naturale per un futuro read model CQRS senza toccare l'`api`.
+
+> I DTO di query riutilizzano value object di dominio (`Description`, `Money`) e tipi semplici (`UUID`, `String`): il package `application.query` resta allineato alle regole di purity degli altri layer application, senza bisogno di esclusioni specifiche.
+
+**Alternative considerate**
+
+- *Far dipendere l'`api` dalla porta repository*: resterebbe il bypass del layer `application` e l'esposizione del contratto di persistenza nel layer di ingresso.
+- *Restituire l'aggregato di dominio dall'`api`*: esporrebbe il modello interno nel contratto HTTP.

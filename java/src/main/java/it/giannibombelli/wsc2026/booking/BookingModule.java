@@ -4,6 +4,7 @@ import it.giannibombelli.wsc2026.common.utils.Require;
 
 import io.javalin.config.JavalinConfig;
 import it.giannibombelli.wsc2026.booking.api.BookingApi;
+import it.giannibombelli.wsc2026.booking.application.query.BookingQueryService;
 import it.giannibombelli.wsc2026.booking.application.services.PaymentResultOutcome;
 import it.giannibombelli.wsc2026.booking.application.usecases.BookingConfirming;
 import it.giannibombelli.wsc2026.booking.application.usecases.BookingPlacing;
@@ -59,8 +60,9 @@ public final class BookingModule extends ApplicationModule {
 
     public void configure(JavalinConfig config) {
         BookingPlacing bookingPlacing = new BookingPlacing(bookingRepository, eventBus);
+        BookingQueryService bookingQueryService = new BookingQueryService(bookingRepository);
 
-        BookingApi api = new BookingApi(bookingPlacing, bookingRepository);
+        BookingApi api = new BookingApi(bookingPlacing, bookingQueryService);
         api.configure(config);
     }
 

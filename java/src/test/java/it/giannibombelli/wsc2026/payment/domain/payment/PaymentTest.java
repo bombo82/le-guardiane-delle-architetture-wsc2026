@@ -23,7 +23,7 @@ class PaymentTest {
         @Test
         void shouldCreatePaymentInRequestedStatus() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("50.00"));
 
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
@@ -38,7 +38,7 @@ class PaymentTest {
         @Test
         void shouldFailIfParametersAreNull() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("50.00"));
 
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
@@ -63,7 +63,7 @@ class PaymentTest {
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Payment payment = Payment.request(
                 EntityId.generate(PaymentId::new),
-                new ClientReference(UUID.randomUUID().toString()),
+                new ClientReference(UUID.randomUUID()),
                 new Money(new BigDecimal("50.00")),
                 new Timestamp(requestedAt)
             );
@@ -93,7 +93,7 @@ class PaymentTest {
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Payment payment = Payment.request(
                 EntityId.generate(PaymentId::new),
-                new ClientReference(UUID.randomUUID().toString()),
+                new ClientReference(UUID.randomUUID()),
                 new Money(new BigDecimal("50.00")),
                 new Timestamp(requestedAt)
             );
@@ -120,7 +120,7 @@ class PaymentTest {
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Payment payment = Payment.request(
                 EntityId.generate(PaymentId::new),
-                new ClientReference(UUID.randomUUID().toString()),
+                new ClientReference(UUID.randomUUID()),
                 new Money(new BigDecimal("50.00")),
                 new Timestamp(requestedAt)
             );
@@ -137,7 +137,7 @@ class PaymentTest {
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Payment payment = Payment.request(
                 EntityId.generate(PaymentId::new),
-                new ClientReference(UUID.randomUUID().toString()),
+                new ClientReference(UUID.randomUUID()),
                 new Money(new BigDecimal("50.00")),
                 new Timestamp(requestedAt)
             );
@@ -165,7 +165,7 @@ class PaymentTest {
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Payment payment = Payment.request(
                 EntityId.generate(PaymentId::new),
-                new ClientReference(UUID.randomUUID().toString()),
+                new ClientReference(UUID.randomUUID()),
                 new Money(new BigDecimal("50.00")),
                 new Timestamp(requestedAt)
             );
@@ -191,7 +191,7 @@ class PaymentTest {
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Payment payment = Payment.request(
                 EntityId.generate(PaymentId::new),
-                new ClientReference(UUID.randomUUID().toString()),
+                new ClientReference(UUID.randomUUID()),
                 new Money(new BigDecimal("50.00")),
                 new Timestamp(requestedAt)
             );

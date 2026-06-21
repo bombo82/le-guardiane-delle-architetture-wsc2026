@@ -11,6 +11,7 @@ import { PaymentId } from '@/payment/domain/payment/paymentId.js';
 import { PaymentStatus } from '@/payment/domain/payment/paymentStatus.js';
 import { SqlitePaymentRepository } from '@/payment/infrastructure/sqlitePaymentRepository.js';
 import { DatabaseSetup } from '../../../testsupport/databaseSetup.js';
+import { Uuid } from '@/common/domain/primitive/uuid.js';
 
 const REQUESTED_AT = new Timestamp(new Date('2026-06-07T10:00:00.000Z'));
 
@@ -28,14 +29,14 @@ describe('PaymentFinder', () => {
     const paymentId = generateId((value) => new PaymentId(value));
     const clientReference = crypto.randomUUID();
     const amount = new Money(50);
-    const payment = Payment.request(paymentId, new ClientReference(clientReference), amount, REQUESTED_AT);
+    const payment = Payment.request(paymentId, new ClientReference(Uuid.fromString(clientReference)), amount, REQUESTED_AT);
     repository.save(payment);
 
     const result = finder.findSummaryById(paymentId);
 
     expect(result).not.toBeNull();
     expect(result!.id).toEqual(paymentId.value.value);
-    expect(result!.clientReference.value).toEqual(clientReference);
+    expect(result!.clientReference.toString()).toEqual(clientReference);
     expect(result!.amount).toEqual(amount);
     expect(result!.status).toEqual(PaymentStatus.REQUESTED);
   });
@@ -44,7 +45,7 @@ describe('PaymentFinder', () => {
     const paymentId = generateId((value) => new PaymentId(value));
     const clientReference = crypto.randomUUID();
     const amount = new Money(50);
-    const payment = Payment.request(paymentId, new ClientReference(clientReference), amount, REQUESTED_AT);
+    const payment = Payment.request(paymentId, new ClientReference(Uuid.fromString(clientReference)), amount, REQUESTED_AT);
     repository.save(payment);
 
     const result = finder.findDetailsById(paymentId);
@@ -68,7 +69,7 @@ describe('PaymentFinder', () => {
 
   it('should find details type guard', () => {
     const paymentId = generateId((value) => new PaymentId(value));
-    repository.save(Payment.request(paymentId, new ClientReference(crypto.randomUUID()), new Money(10), REQUESTED_AT));
+    repository.save(Payment.request(paymentId, new ClientReference(Uuid.fromString(crypto.randomUUID())), new Money(10), REQUESTED_AT));
 
     const details: PaymentDetails | null = finder.findDetailsById(paymentId);
     const summary: PaymentSummary | null = finder.findSummaryById(paymentId);

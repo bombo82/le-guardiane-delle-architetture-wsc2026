@@ -18,7 +18,7 @@ public class BookingPaymentRequestPolicy implements Policy<BookingPlaced, Reques
         Require.requireArgument(event, "Booking placed event");
         return new RequestPayment(
             EntityId.generate(PaymentId::new),
-            new ClientReference(event.aggregateId().value().toString()),
+            new ClientReference(event.aggregateId().value()),
             event.amount(),
             Timestamp.now()
         );

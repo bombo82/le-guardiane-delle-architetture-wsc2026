@@ -78,7 +78,7 @@ class TransactionRejectingTest {
         @Test
         void shouldRejectTransaction() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("50.00"));
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Payment payment = Payment.request(paymentId, new ClientReference(clientReference), amount, new Timestamp(requestedAt));
@@ -96,7 +96,7 @@ class TransactionRejectingTest {
         @Test
         void shouldPublishRejectedEvent() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("50.00"));
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Payment payment = Payment.request(paymentId, new ClientReference(clientReference), amount, new Timestamp(requestedAt));
@@ -126,7 +126,7 @@ class TransactionRejectingTest {
         @Test
         void shouldFailIfAlreadyAccepted() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("50.00"));
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Payment payment = Payment.request(paymentId, new ClientReference(clientReference), amount, new Timestamp(requestedAt));

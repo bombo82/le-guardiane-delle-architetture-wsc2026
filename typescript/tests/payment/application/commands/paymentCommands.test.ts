@@ -16,6 +16,8 @@ import { ProviderReference } from '@/payment/domain/payment/providerReference.js
 import { TransactionId } from '@/payment/domain/payment/transactionId.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';
 
+const A_CLIENT_REFERENCE = new ClientReference(Uuid.fromString('00000000-0000-0000-0000-000000000001'));
+
 const REQUESTED_AT = new Timestamp(new Date('2026-06-07T10:00:00.000Z'));
 
 describe('PaymentCommands', () => {
@@ -24,10 +26,10 @@ describe('PaymentCommands', () => {
       const paymentId = generateId((value) => new PaymentId(value));
       const amount = new Money(10);
 
-      expect(() => requestPayment(null as unknown as PaymentId, new ClientReference('ref'), amount, REQUESTED_AT)).toThrow();
+      expect(() => requestPayment(null as unknown as PaymentId, A_CLIENT_REFERENCE, amount, REQUESTED_AT)).toThrow();
       expect(() => requestPayment(paymentId, null as unknown as ClientReference, amount, REQUESTED_AT)).toThrow();
-      expect(() => requestPayment(paymentId, new ClientReference('ref'), null as unknown as Money, REQUESTED_AT)).toThrow();
-      expect(() => requestPayment(paymentId, new ClientReference('ref'), amount, null as unknown as Timestamp)).toThrow();
+      expect(() => requestPayment(paymentId, A_CLIENT_REFERENCE, null as unknown as Money, REQUESTED_AT)).toThrow();
+      expect(() => requestPayment(paymentId, A_CLIENT_REFERENCE, amount, null as unknown as Timestamp)).toThrow();
     });
   });
 

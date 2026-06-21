@@ -15,7 +15,7 @@ export type PaymentDetailsResponse = {
 export function toPaymentDetailsResponse(details: PaymentDetails): PaymentDetailsResponse {
   return {
     id: details.id,
-    clientReference: details.clientReference.value,
+    clientReference: details.clientReference.toString(),
     amount: details.amount.value,
     status: details.status,
     requestedAt: details.requestedAt.value,

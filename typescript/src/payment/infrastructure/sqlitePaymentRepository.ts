@@ -37,7 +37,7 @@ export class SqlitePaymentRepository implements PaymentRepository {
       .insert(payments)
       .values({
         id: paymentId,
-        clientReference: payment.clientReference().value,
+        clientReference: payment.clientReference().toString(),
         amount: payment.amount().value,
         status: payment.status(),
         requestedAt: payment.requestedAt().value.toISOString(),
@@ -45,7 +45,7 @@ export class SqlitePaymentRepository implements PaymentRepository {
       .onConflictDoUpdate({
         target: payments.id,
         set: {
-          clientReference: payment.clientReference().value,
+          clientReference: payment.clientReference().toString(),
           amount: payment.amount().value,
           status: payment.status(),
           requestedAt: payment.requestedAt().value.toISOString(),
@@ -80,7 +80,7 @@ export class SqlitePaymentRepository implements PaymentRepository {
     const rows = this._db
       .select()
       .from(payments)
-      .where(eq(payments.clientReference, clientReference.value))
+      .where(eq(payments.clientReference, clientReference.toString()))
       .all();
 
     if (rows.length === 0) {
@@ -119,7 +119,7 @@ export class SqlitePaymentRepository implements PaymentRepository {
     const transactions = this.loadTransactions(record.id);
     return new Payment(
       new PaymentId(Uuid.fromString(record.id)),
-      new ClientReference(record.clientReference),
+      new ClientReference(Uuid.fromString(record.clientReference)),
       new Money(record.amount),
       paymentStatusFromLabel(record.status),
       new Timestamp(record.requestedAt === null ? new Date(0) : new Date(record.requestedAt)),

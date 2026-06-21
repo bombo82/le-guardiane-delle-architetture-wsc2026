@@ -28,19 +28,19 @@ class PaymentCommandsTest {
             Money amount = new Money(BigDecimal.TEN);
             Timestamp requestedAt = new Timestamp(Instant.parse("2026-06-07T10:00:00Z"));
 
-            assertThatThrownBy(() -> new RequestPayment(null, new ClientReference("ref"), amount, requestedAt))
+            assertThatThrownBy(() -> new RequestPayment(null, new ClientReference(UUID.fromString("00000000-0000-0000-0000-000000000001")), amount, requestedAt))
                 .isInstanceOf(IllegalArgumentException.class);
 
             assertThatThrownBy(() -> new RequestPayment(paymentId, null, amount, requestedAt))
                 .isInstanceOf(IllegalArgumentException.class);
 
-            assertThatThrownBy(() -> new RequestPayment(paymentId, new ClientReference(""), amount, requestedAt))
+            assertThatThrownBy(() -> new RequestPayment(paymentId, new ClientReference((UUID) null), amount, requestedAt))
                 .isInstanceOf(IllegalArgumentException.class);
 
-            assertThatThrownBy(() -> new RequestPayment(paymentId, new ClientReference("ref"), null, requestedAt))
+            assertThatThrownBy(() -> new RequestPayment(paymentId, new ClientReference(UUID.fromString("00000000-0000-0000-0000-000000000001")), null, requestedAt))
                 .isInstanceOf(IllegalArgumentException.class);
 
-            assertThatThrownBy(() -> new RequestPayment(paymentId, new ClientReference("ref"), amount, null))
+            assertThatThrownBy(() -> new RequestPayment(paymentId, new ClientReference(UUID.fromString("00000000-0000-0000-0000-000000000001")), amount, null))
                 .isInstanceOf(IllegalArgumentException.class);
         }
     }

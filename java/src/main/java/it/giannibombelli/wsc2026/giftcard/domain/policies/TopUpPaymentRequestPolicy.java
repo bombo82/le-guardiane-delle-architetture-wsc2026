@@ -18,7 +18,7 @@ public class TopUpPaymentRequestPolicy implements Policy<GiftCardTopUpRequested,
         Require.requireArgument(event, "Top-up request event");
         return new RequestPayment(
             EntityId.generate(PaymentId::new),
-            new ClientReference(event.aggregateId().value().toString()),
+            new ClientReference(event.aggregateId().value()),
             event.requestedAmount(),
             Timestamp.now()
         );

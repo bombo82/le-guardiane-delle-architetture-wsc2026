@@ -17,7 +17,7 @@ public final class ConfirmTopUpPolicy implements Policy<PaymentResultEvents, Con
         Require.requireArgument(event, "Payment event");
         return switch (event) {
             case PaymentAccepted it ->
-                new ConfirmTopUp(new GiftCardId(UUID.fromString(it.clientReference().value())), it.amount());
+                new ConfirmTopUp(new GiftCardId(it.clientReference().value()), it.amount());
             case PaymentRejected ignored -> null;
             case PaymentExpired ignored -> null;
         };

@@ -13,6 +13,7 @@ import {
 } from '@/payment/domain/events/paymentResultEvents.js';
 import { ConfirmTopUpPolicy } from '@/giftcard/domain/policies/confirmTopUpPolicy.js';
 import { GiftCardId } from '@/giftcard/domain/giftcard/giftCardId.js';
+import { Uuid } from '@/common/domain/primitive/uuid.js';
 
 describe('ConfirmTopUpPolicy', () => {
   const policy = new ConfirmTopUpPolicy();
@@ -20,7 +21,7 @@ describe('ConfirmTopUpPolicy', () => {
   function createPayment(clientReference: string, amount: Money): Payment {
     return Payment.request(
       generateId((value) => new PaymentId(value)),
-      new ClientReference(clientReference),
+      new ClientReference(Uuid.fromString(clientReference)),
       amount,
       Timestamp.now()
     );

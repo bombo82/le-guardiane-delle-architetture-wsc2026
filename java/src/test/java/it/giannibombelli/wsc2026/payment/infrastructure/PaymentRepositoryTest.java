@@ -41,7 +41,7 @@ class PaymentRepositoryTest {
         @Test
         void shouldPersistNewPayment() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("50.00"));
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Payment original = Payment.request(paymentId, new ClientReference(clientReference), amount, new Timestamp(requestedAt));
@@ -76,7 +76,7 @@ class PaymentRepositoryTest {
         @Test
         void shouldReturnPaymentWhenClientReferenceMatches() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("25.00"));
             Payment payment = Payment.request(paymentId, new ClientReference(clientReference), amount, new Timestamp(Instant.now()));
             repository.save(payment);
@@ -89,7 +89,7 @@ class PaymentRepositoryTest {
 
         @Test
         void shouldReturnEmptyWhenClientReferenceDoesNotMatch() {
-            Optional<Payment> found = repository.findByClientReference(new ClientReference("non-existing-reference"));
+            Optional<Payment> found = repository.findByClientReference(new ClientReference(UUID.fromString("00000000-0000-0000-0000-000000000002")));
 
             assertThat(found).isEmpty();
         }
@@ -101,7 +101,7 @@ class PaymentRepositoryTest {
         void shouldReturnPaymentsRequestedBeforeThreshold() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
-            Payment payment = Payment.request(paymentId, new ClientReference(UUID.randomUUID().toString()), new Money(new BigDecimal("10.00")), new Timestamp(requestedAt));
+            Payment payment = Payment.request(paymentId, new ClientReference(UUID.randomUUID()), new Money(new BigDecimal("10.00")), new Timestamp(requestedAt));
             repository.save(payment);
 
             List<Payment> found = repository.findAllRequestedAndProcessingBefore(new Timestamp(Instant.parse("2026-06-08T10:00:00Z")));
@@ -113,7 +113,7 @@ class PaymentRepositoryTest {
         void shouldNotReturnPaymentsRequestedAfterThreshold() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
-            Payment payment = Payment.request(paymentId, new ClientReference(UUID.randomUUID().toString()), new Money(new BigDecimal("10.00")), new Timestamp(requestedAt));
+            Payment payment = Payment.request(paymentId, new ClientReference(UUID.randomUUID()), new Money(new BigDecimal("10.00")), new Timestamp(requestedAt));
             repository.save(payment);
 
             List<Payment> found = repository.findAllRequestedAndProcessingBefore(new Timestamp(Instant.parse("2026-06-06T10:00:00Z")));

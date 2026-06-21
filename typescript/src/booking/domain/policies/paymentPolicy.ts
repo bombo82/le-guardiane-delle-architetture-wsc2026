@@ -10,7 +10,6 @@ import { BookingId } from '../booking/bookingId.js';
 import type { BookingRepository } from '../ports/bookingRepository.js';
 import { requireArgument } from '@/common/utils/requireArgument.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
-import { Uuid } from '@/common/domain/primitive/uuid.js';
 import {
   type BookingConfirmationCommand,
   confirmBooking,
@@ -58,6 +57,6 @@ export class PaymentPolicy implements Policy<PaymentResultEvent, BookingConfirma
   }
 
   private bookingIdFrom(clientReference: ClientReference): BookingId {
-    return new BookingId(Uuid.fromString(clientReference.value));
+    return new BookingId(clientReference.value);
   }
 }

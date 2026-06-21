@@ -33,7 +33,7 @@ class TopUpPaymentRequestPolicyTest {
 
         var cmd = policy.evaluate(event);
 
-        org.assertj.core.api.Assertions.assertThat(cmd.clientReference()).isEqualTo(new ClientReference(event.aggregateId().value().toString()));
+        org.assertj.core.api.Assertions.assertThat(cmd.clientReference()).isEqualTo(new ClientReference(event.aggregateId().value()));
         org.assertj.core.api.Assertions.assertThat(cmd.amount()).isEqualTo(event.requestedAmount());
     }
 }

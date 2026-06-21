@@ -1,9 +1,17 @@
 package it.giannibombelli.wsc2026.common.domain.primitive;
 
-public record ClientReference(String value) {
+import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
+import it.giannibombelli.wsc2026.common.utils.Require;
+
+import java.util.UUID;
+
+public record ClientReference(UUID value) implements EntityId {
     public ClientReference {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("clientReference must not be null or blank");
-        }
+        Require.requireArgument(value, "clientReference");
+    }
+
+    @Override
+    public String toString() {
+        return value.toString();
     }
 }

@@ -67,7 +67,7 @@ describe('RefundRequesting', () => {
       const paymentId = generateId((value) => new PaymentId(value));
       const payment = Payment.request(
         paymentId,
-        new ClientReference(crypto.randomUUID()),
+        new ClientReference(Uuid.fromString(crypto.randomUUID())),
         new Money(50),
         Timestamp.now()
       );
@@ -83,7 +83,7 @@ describe('RefundRequesting', () => {
     const clientReference = crypto.randomUUID();
     const money = new Money(amount);
     const requestedAt = Timestamp.now();
-    const payment = Payment.request(paymentId, new ClientReference(clientReference), money, requestedAt);
+    const payment = Payment.request(paymentId, new ClientReference(Uuid.fromString(clientReference)), money, requestedAt);
     const transactionId = generateId((value) => new TransactionId(value));
     payment.startTransaction(
       transactionId,

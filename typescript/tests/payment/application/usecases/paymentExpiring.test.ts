@@ -15,6 +15,7 @@ import { PaymentId } from '@/payment/domain/payment/paymentId.js';
 import { PaymentStatus } from '@/payment/domain/payment/paymentStatus.js';
 import { PaymentExpiration } from '@/payment/domain/policies/paymentExpiration.js';
 import { SqlitePaymentRepository } from '@/payment/infrastructure/sqlitePaymentRepository.js';
+import { Uuid } from '@/common/domain/primitive/uuid.js';
 import { CapturingEventPublisher } from '../../../testsupport/events/capturingEventPublisher.js';
 import { DatabaseSetup } from '../../../testsupport/databaseSetup.js';
 
@@ -81,7 +82,7 @@ describe('PaymentExpiring', () => {
     const paymentId = generateId((value) => new PaymentId(value));
     const payment = Payment.request(
       paymentId,
-      new ClientReference(crypto.randomUUID()),
+      new ClientReference(Uuid.fromString(crypto.randomUUID())),
       new Money(50),
       new Timestamp(new Date('2026-06-07T10:00:00.000Z'))
     );

@@ -1,13 +1,16 @@
 import { requireArgument } from '@/common/utils/requireArgument.js';
+import type { EntityId } from '@/common/domain/identity/entityId.js';
+import { Uuid } from '@/common/domain/primitive/uuid.js';
 
-export class ClientReference {
-  readonly value: string;
+export class ClientReference implements EntityId {
+  readonly value: Uuid;
 
-  constructor(value: string) {
+  constructor(value: Uuid) {
     requireArgument(value, 'clientReference');
-    if (value.trim().length === 0) {
-      throw new Error('clientReference must not be blank');
-    }
     this.value = value;
+  }
+
+  toString(): string {
+    return this.value.value;
   }
 }

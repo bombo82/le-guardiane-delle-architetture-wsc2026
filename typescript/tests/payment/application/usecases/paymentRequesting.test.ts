@@ -11,6 +11,7 @@ import { CapturingEventPublisher } from '../../../testsupport/events/capturingEv
 import { DatabaseSetup } from '../../../testsupport/databaseSetup.js';
 import { RequestPayment, requestPayment } from '@/payment/application/commands/requestPayment.js';
 import { PaymentStatus } from '@/payment/domain/payment/paymentStatus.js';
+import { Uuid } from '@/common/domain/primitive/uuid.js';
 
 describe('PaymentRequesting', () => {
   let repository: SqlitePaymentRepository;
@@ -46,13 +47,13 @@ describe('PaymentRequesting', () => {
       const requestedAt = new Timestamp(new Date('2026-06-07T10:00:00.000Z'));
 
       const event = paymentRequesting.invoke(
-        requestPayment(paymentId, new ClientReference(clientReference), amount, requestedAt)
+        requestPayment(paymentId, new ClientReference(Uuid.fromString(clientReference)), amount, requestedAt)
       );
 
       const loaded = repository.findById(paymentId);
       expect(loaded).not.toBeNull();
       expect(loaded!.id()).toEqual(paymentId);
-      expect(loaded!.clientReference().value).toEqual(clientReference);
+      expect(loaded!.clientReference().toString()).toEqual(clientReference);
       expect(loaded!.amount()).toEqual(amount);
       expect(loaded!.status()).toEqual(PaymentStatus.REQUESTED);
 
@@ -65,7 +66,7 @@ describe('PaymentRequesting', () => {
       const amount = new Money(75);
       const requestedAt = new Timestamp(new Date('2026-06-07T10:00:00.000Z'));
 
-      paymentRequesting.invoke(requestPayment(paymentId, new ClientReference(clientReference), amount, requestedAt));
+      paymentRequesting.invoke(requestPayment(paymentId, new ClientReference(Uuid.fromString(clientReference)), amount, requestedAt));
 
       expect(publisher.events()).toHaveLength(1);
       expect(publisher.events()[0].kind).toBe('PaymentRequested');

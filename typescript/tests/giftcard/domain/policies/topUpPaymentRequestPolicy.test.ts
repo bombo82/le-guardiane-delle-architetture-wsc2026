@@ -18,7 +18,7 @@ describe('TopUpPaymentRequestPolicy', () => {
 
     const cmd = policy.evaluate(event);
 
-    expect(cmd.clientReference.value).toEqual(event.aggregateId.value.value);
+    expect(cmd.clientReference.toString()).toEqual(event.aggregateId.value.value);
     expect(cmd.amount).toEqual(event.requestedAmount);
     expect(cmd.aggregateId).toBeInstanceOf(PaymentId);
   });

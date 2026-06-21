@@ -86,7 +86,7 @@ public final class PaymentInternalApi {
         try {
             command = new RequestPayment(
                 paymentId,
-                new ClientReference(request.clientReference()),
+                new ClientReference(UUID.fromString(request.clientReference())),
                 new Money(request.amount()),
                 new Timestamp(request.requestedAt())
             );
@@ -134,7 +134,7 @@ public final class PaymentInternalApi {
 
         Optional<PaymentDetails> payment;
         try {
-            payment = paymentFinder.findDetailsByClientReference(new ClientReference(clientReference));
+            payment = paymentFinder.findDetailsByClientReference(new ClientReference(UUID.fromString(clientReference)));
         } catch (IllegalArgumentException ex) {
             ctx.status(400).result(ex.getMessage());
             return;

@@ -25,9 +25,9 @@ public class BookingRefundRequestPolicy implements Policy<BookingResultEvents.Bo
     public RefundTransaction evaluate(BookingResultEvents.BookingRefused event) {
         Require.requireArgument(event, "Booking refused event");
 
-        ClientReference clientReference = new ClientReference(event.aggregateId().value().toString());
+        ClientReference clientReference = new ClientReference(event.aggregateId().value());
         Payment payment = paymentRepository.findByClientReference(clientReference)
-            .orElseThrow(() -> new IllegalStateException("Payment not found for booking: " + clientReference.value()));
+            .orElseThrow(() -> new IllegalStateException("Payment not found for booking: " + clientReference));
 
         return new RefundTransaction(payment.id(), event.amount());
     }

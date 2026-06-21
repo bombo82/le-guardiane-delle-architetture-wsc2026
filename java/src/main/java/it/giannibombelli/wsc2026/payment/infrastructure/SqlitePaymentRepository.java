@@ -53,7 +53,7 @@ public final class SqlitePaymentRepository implements PaymentRepository {
         String paymentId = payment.id().value().toString();
 
         int updated = dsl.update(PAYMENT)
-            .set(CLIENT_REFERENCE, payment.clientReference().value())
+            .set(CLIENT_REFERENCE, payment.clientReference().toString())
             .set(AMOUNT, payment.amount().value())
             .set(STATUS, payment.status().name())
             .set(REQUESTED_AT, payment.requestedAt().value())
@@ -63,7 +63,7 @@ public final class SqlitePaymentRepository implements PaymentRepository {
         if (updated == 0) {
             dsl.insertInto(PAYMENT)
                 .columns(ID, CLIENT_REFERENCE, AMOUNT, STATUS, REQUESTED_AT)
-                .values(paymentId, payment.clientReference().value(), payment.amount().value(),
+                .values(paymentId, payment.clientReference().toString(), payment.amount().value(),
                     payment.status().name(), payment.requestedAt().value())
                 .execute();
         }
@@ -101,7 +101,7 @@ public final class SqlitePaymentRepository implements PaymentRepository {
         Result<Record5<String, String, BigDecimal, String, Instant>> rows = dsl
             .select(ID, CLIENT_REFERENCE, AMOUNT, STATUS, REQUESTED_AT)
             .from(PAYMENT)
-            .where(CLIENT_REFERENCE.eq(clientReference.value()))
+            .where(CLIENT_REFERENCE.eq(clientReference.toString()))
             .fetch();
 
         if (rows.isEmpty()) {
@@ -144,7 +144,7 @@ public final class SqlitePaymentRepository implements PaymentRepository {
 
     private Payment toDomainPayment(Record5<String, String, BigDecimal, String, Instant> record, List<Transaction> transactions) {
         PaymentId paymentId = new PaymentId(UUID.fromString(record.get(ID)));
-        ClientReference clientReference = new ClientReference(record.get(CLIENT_REFERENCE));
+        ClientReference clientReference = new ClientReference(UUID.fromString(record.get(CLIENT_REFERENCE)));
         Money amount = new Money(record.get(AMOUNT));
         PaymentStatus status = PaymentStatus.valueOf(record.get(STATUS));
         Instant requestedAt = record.get(REQUESTED_AT) == null ? Instant.EPOCH : record.get(REQUESTED_AT);

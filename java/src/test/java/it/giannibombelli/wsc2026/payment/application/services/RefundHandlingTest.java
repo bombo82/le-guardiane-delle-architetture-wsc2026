@@ -119,7 +119,7 @@ class RefundHandlingTest {
         void shouldRefundWhenProviderSucceeds() {
             PaymentId paymentId = seedAcceptedPayment("PayPal", new BigDecimal("50.00"));
 
-            refundHandling.on(new RefundRequested(paymentId, new ClientReference(UUID.randomUUID().toString()), new Money(new BigDecimal("50.00"))));
+            refundHandling.on(new RefundRequested(paymentId, new ClientReference(UUID.randomUUID()), new Money(new BigDecimal("50.00"))));
 
             Optional<Payment> loaded = repository.findById(paymentId);
             assertThat(loaded).isPresent();
@@ -135,7 +135,7 @@ class RefundHandlingTest {
         void shouldNotifyFailureWhenProviderRejects() {
             PaymentId paymentId = seedAcceptedPayment("Klarna", new BigDecimal("50.00"));
 
-            refundHandling.on(new RefundRequested(paymentId, new ClientReference(UUID.randomUUID().toString()), new Money(new BigDecimal("50.00"))));
+            refundHandling.on(new RefundRequested(paymentId, new ClientReference(UUID.randomUUID()), new Money(new BigDecimal("50.00"))));
 
             Optional<Payment> loaded = repository.findById(paymentId);
             assertThat(loaded).isPresent();
@@ -151,7 +151,7 @@ class RefundHandlingTest {
                 "GiftCard", new BigDecimal("40.00")
             );
 
-            refundHandling.on(new RefundRequested(paymentId, new ClientReference(UUID.randomUUID().toString()), new Money(new BigDecimal("100.00"))));
+            refundHandling.on(new RefundRequested(paymentId, new ClientReference(UUID.randomUUID()), new Money(new BigDecimal("100.00"))));
 
             Optional<Payment> loaded = repository.findById(paymentId);
             assertThat(loaded).isPresent();
@@ -170,7 +170,7 @@ class RefundHandlingTest {
                 "Klarna", new BigDecimal("40.00")
             );
 
-            refundHandling.on(new RefundRequested(paymentId, new ClientReference(UUID.randomUUID().toString()), new Money(new BigDecimal("100.00"))));
+            refundHandling.on(new RefundRequested(paymentId, new ClientReference(UUID.randomUUID()), new Money(new BigDecimal("100.00"))));
 
             Optional<Payment> loaded = repository.findById(paymentId);
             assertThat(loaded).isPresent();
@@ -187,13 +187,13 @@ class RefundHandlingTest {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
 
             assertThatThrownBy(() -> refundHandling.on(
-                new RefundRequested(paymentId, new ClientReference(UUID.randomUUID().toString()), new Money(new BigDecimal("10.00")))))
+                new RefundRequested(paymentId, new ClientReference(UUID.randomUUID()), new Money(new BigDecimal("10.00")))))
                 .isInstanceOf(IllegalArgumentException.class);
         }
 
         private PaymentId seedAcceptedPayment(String provider, BigDecimal amount) {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money money = new Money(amount);
             Instant requestedAt = Instant.now();
             Payment payment = Payment.request(paymentId, new ClientReference(clientReference), money, new Timestamp(requestedAt));
@@ -213,7 +213,7 @@ class RefundHandlingTest {
         private PaymentId seedSplitPayment(String firstProvider, BigDecimal firstAmount,
                                            String secondProvider, BigDecimal secondAmount) {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money total = new Money(firstAmount.add(secondAmount));
             Instant requestedAt = Instant.now();
             Payment payment = Payment.request(paymentId, new ClientReference(clientReference), total, new Timestamp(requestedAt));

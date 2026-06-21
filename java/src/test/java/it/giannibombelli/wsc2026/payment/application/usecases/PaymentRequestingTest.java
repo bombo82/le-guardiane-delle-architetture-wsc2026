@@ -65,7 +65,7 @@ class PaymentRequestingTest {
         @Test
         void shouldPersist() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("75.00"));
             Timestamp requestedAt = new Timestamp(Instant.parse("2026-06-07T10:00:00Z"));
 
@@ -84,7 +84,7 @@ class PaymentRequestingTest {
         @Test
         void shouldPublishRequestedEvent() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("75.00"));
             Timestamp requestedAt = new Timestamp(Instant.parse("2026-06-07T10:00:00Z"));
 

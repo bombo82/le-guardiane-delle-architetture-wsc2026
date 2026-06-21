@@ -7,6 +7,7 @@ import { paymentDeadlineReached, type PaymentDeadlineReached } from '@/payment/d
 import { Payment } from '@/payment/domain/payment/payment.js';
 import { PaymentId } from '@/payment/domain/payment/paymentId.js';
 import { PaymentExpiration } from '@/payment/domain/policies/paymentExpiration.js';
+import { Uuid } from '@/common/domain/primitive/uuid.js';
 
 describe('PaymentExpiration', () => {
   const policy = new PaymentExpiration();
@@ -62,7 +63,7 @@ describe('PaymentExpiration', () => {
     const paymentId = generateId((value) => new PaymentId(value));
     return Payment.request(
       paymentId,
-      new ClientReference(crypto.randomUUID()),
+      new ClientReference(Uuid.fromString(crypto.randomUUID())),
       new Money(50),
       new Timestamp(requestedAt)
     );

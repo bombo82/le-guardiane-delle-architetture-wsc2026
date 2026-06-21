@@ -18,7 +18,7 @@ public record PaymentDetailsResponse(
     public static PaymentDetailsResponse from(PaymentDetails details) {
         return new PaymentDetailsResponse(
             details.id(),
-            details.clientReference().value(),
+            details.clientReference().toString(),
             details.amount().value(),
             details.status().name(),
             details.requestedAt().value(),

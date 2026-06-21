@@ -16,6 +16,7 @@ import { TopUpConfirming } from '@/giftcard/application/usecases/topUpConfirming
 import { ConfirmTopUpPolicy } from '@/giftcard/domain/policies/confirmTopUpPolicy.js';
 import { GiftCardId } from '@/giftcard/domain/giftcard/giftCardId.js';
 import { SqliteGiftCardRepository } from '@/giftcard/infrastructure/sqliteGiftCardRepository.js';
+import { Uuid } from '@/common/domain/primitive/uuid.js';
 import { DatabaseSetup } from '../../../testsupport/databaseSetup.js';
 import { GiftCardAggregateFactory } from '../../../testsupport/giftcard/aggregateFactory.js';
 
@@ -34,7 +35,7 @@ describe('TopUpConfirmation', () => {
   function createPayment(clientReference: string, amount: Money): Payment {
     return Payment.request(
       generateId((value) => new PaymentId(value)),
-      new ClientReference(clientReference),
+      new ClientReference(Uuid.fromString(clientReference)),
       amount,
       Timestamp.now()
     );

@@ -46,7 +46,7 @@ public class AggregateFactory {
 
     public static Payment createPayment(String clientReference, Money amount) {
         PaymentId paymentId = EntityId.generate(PaymentId::new);
-        return Payment.request(paymentId, new ClientReference(clientReference), amount, new Timestamp(Instant.now()));
+        return Payment.request(paymentId, new ClientReference(UUID.fromString(clientReference)), amount, new Timestamp(Instant.now()));
     }
 
     public static GiftCard getSavedGiftCard(GiftCardRepository giftCardRepository) {

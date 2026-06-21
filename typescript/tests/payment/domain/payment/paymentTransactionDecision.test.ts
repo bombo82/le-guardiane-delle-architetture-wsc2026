@@ -24,7 +24,7 @@ describe('PaymentTransactionDecision', () => {
     const providerCompletion = new Timestamp(new Date('2026-06-07T11:00:00.000Z'));
 
     const pid = new PaymentId(Uuid.generate());
-    const p = Payment.request(pid, new ClientReference(CLIENT_REFERENCE), TOTAL, requestedAt);
+    const p = Payment.request(pid, new ClientReference(Uuid.fromString(CLIENT_REFERENCE)), TOTAL, requestedAt);
     const txId = startTransaction(p, PAYPAL, TOTAL, requestedAt.plusSeconds(1));
 
     const evt = p.acceptTransaction(txId, providerCompletion);
@@ -37,7 +37,7 @@ describe('PaymentTransactionDecision', () => {
     const requestedAt = new Timestamp(new Date('2026-06-07T09:00:00.000Z'));
 
     const pid = new PaymentId(Uuid.generate());
-    const p = Payment.request(pid, new ClientReference(CLIENT_REFERENCE), TOTAL, requestedAt);
+    const p = Payment.request(pid, new ClientReference(Uuid.fromString(CLIENT_REFERENCE)), TOTAL, requestedAt);
     const txA = startTransaction(p, PAYPAL, new Money(40), requestedAt.plusSeconds(1));
     p.acceptTransaction(txA, requestedAt.plusSeconds(3600));
 
@@ -53,7 +53,7 @@ describe('PaymentTransactionDecision', () => {
     const txTime = new Timestamp(new Date('2026-06-07T10:30:00.000Z'));
 
     const pid = new PaymentId(Uuid.generate());
-    const p = Payment.request(pid, new ClientReference(CLIENT_REFERENCE), TOTAL, requestedAt);
+    const p = Payment.request(pid, new ClientReference(Uuid.fromString(CLIENT_REFERENCE)), TOTAL, requestedAt);
     const txId = startTransaction(p, PAYPAL, new Money(60), requestedAt.plusSeconds(1));
 
     p.acceptTransaction(txId, txTime);
@@ -67,7 +67,7 @@ describe('PaymentTransactionDecision', () => {
     const tx2 = new Timestamp(new Date('2026-06-08T06:59:59.000Z'));
 
     const pid = new PaymentId(Uuid.generate());
-    const p = Payment.request(pid, new ClientReference(CLIENT_REFERENCE), TOTAL, requestedAt);
+    const p = Payment.request(pid, new ClientReference(Uuid.fromString(CLIENT_REFERENCE)), TOTAL, requestedAt);
     const txA = startTransaction(p, PAYPAL, new Money(60), requestedAt.plusSeconds(1));
     p.acceptTransaction(txA, tx1);
     const txB = startTransaction(p, KLARNA, new Money(40), requestedAt.plusSeconds(2));
@@ -83,7 +83,7 @@ describe('PaymentTransactionDecision', () => {
     const late = new Timestamp(new Date('2026-06-06T00:00:00.000Z'));
 
     const pid = new PaymentId(Uuid.generate());
-    const p = Payment.request(pid, new ClientReference(CLIENT_REFERENCE), TOTAL, requestedAt);
+    const p = Payment.request(pid, new ClientReference(Uuid.fromString(CLIENT_REFERENCE)), TOTAL, requestedAt);
     const txA = startTransaction(p, PAYPAL, new Money(50), requestedAt.plusSeconds(1));
     p.acceptTransaction(txA, timely);
     const txB = startTransaction(p, KLARNA, new Money(50), requestedAt.plusSeconds(2));

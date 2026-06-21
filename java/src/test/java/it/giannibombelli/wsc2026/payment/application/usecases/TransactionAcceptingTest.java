@@ -77,7 +77,7 @@ class TransactionAcceptingTest {
         @Test
         void shouldAcceptTransaction() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("50.00"));
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Timestamp providerAt = new Timestamp(Instant.parse("2026-06-07T10:30:00Z"));
@@ -96,7 +96,7 @@ class TransactionAcceptingTest {
         @Test
         void shouldPublishAcceptedEvent() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("50.00"));
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Timestamp providerAt = new Timestamp(Instant.parse("2026-06-07T10:30:00Z"));
@@ -128,7 +128,7 @@ class TransactionAcceptingTest {
         @Test
         void shouldFailIfAlreadyAccepted() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("50.00"));
             Instant requestedAt = Instant.parse("2026-06-07T10:00:00Z");
             Payment payment = Payment.request(paymentId, new ClientReference(clientReference), amount, new Timestamp(requestedAt));

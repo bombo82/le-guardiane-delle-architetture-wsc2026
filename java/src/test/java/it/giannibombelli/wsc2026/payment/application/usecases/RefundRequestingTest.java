@@ -89,7 +89,7 @@ class RefundRequestingTest {
         @Test
         void shouldFailIfPaymentNotAccepted() {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money amount = new Money(new BigDecimal("50.00"));
             Payment payment = Payment.request(paymentId, new ClientReference(clientReference), amount, new Timestamp(Instant.now()));
             repository.save(payment);
@@ -101,7 +101,7 @@ class RefundRequestingTest {
 
         private PaymentId seedAcceptedPayment(BigDecimal amount) {
             PaymentId paymentId = EntityId.generate(PaymentId::new);
-            String clientReference = UUID.randomUUID().toString();
+            UUID clientReference = UUID.randomUUID();
             Money money = new Money(amount);
             Instant requestedAt = Instant.now();
             Payment payment = Payment.request(paymentId, new ClientReference(clientReference), money, new Timestamp(requestedAt));

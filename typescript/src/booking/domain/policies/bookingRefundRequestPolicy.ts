@@ -20,10 +20,10 @@ export class BookingRefundRequestPolicy implements Policy<BookingRefused, Refund
   evaluate(event: BookingRefused): RefundTransaction {
     requireArgument(event, 'Booking refused event');
 
-    const clientReference = new ClientReference(event.aggregateId.value.value);
+    const clientReference = new ClientReference(event.aggregateId.value);
     const payment = this._paymentRepository.findByClientReference(clientReference);
     if (payment === null) {
-      throw new Error(`Payment not found for booking: ${clientReference.value}`);
+      throw new Error(`Payment not found for booking: ${clientReference.toString()}`);
     }
 
     return refundTransaction(payment.id(), event.amount);

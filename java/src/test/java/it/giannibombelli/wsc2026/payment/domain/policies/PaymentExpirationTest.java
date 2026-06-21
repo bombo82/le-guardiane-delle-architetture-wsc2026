@@ -82,7 +82,7 @@ class PaymentExpirationTest {
         PaymentId paymentId = EntityId.generate(PaymentId::new);
         return Payment.request(
             paymentId,
-            new ClientReference(UUID.randomUUID().toString()),
+            new ClientReference(UUID.randomUUID()),
             new Money(new BigDecimal("50.00")),
             new Timestamp(requestedAt)
         );

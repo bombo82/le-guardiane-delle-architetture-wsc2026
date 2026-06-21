@@ -15,7 +15,7 @@ export class BookingPaymentRequestPolicy implements Policy<BookingPlaced, Reques
     requireArgument(event, 'Booking placed event');
     return requestPayment(
       generateId((value) => new PaymentId(value)),
-      new ClientReference(event.aggregateId.value.value),
+      new ClientReference(event.aggregateId.value),
       event.amount,
       Timestamp.now()
     );

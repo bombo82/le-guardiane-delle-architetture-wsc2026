@@ -116,7 +116,7 @@ describe('TransactionAccepting', () => {
     const paymentId = generateId((value) => new PaymentId(value));
     const payment = Payment.request(
       paymentId,
-      new ClientReference(crypto.randomUUID()),
+      new ClientReference(Uuid.fromString(crypto.randomUUID())),
       new Money(50),
       new Timestamp(new Date('2026-06-07T10:00:00.000Z'))
     );

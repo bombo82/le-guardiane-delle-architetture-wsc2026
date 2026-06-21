@@ -18,7 +18,7 @@ const REQUESTED_AT = new Timestamp(new Date('2026-06-07T10:00:00.000Z'));
 function createPayment(): Payment {
   return Payment.request(
     generateId((value) => new PaymentId(value)),
-    new ClientReference(crypto.randomUUID()),
+    new ClientReference(Uuid.fromString(crypto.randomUUID())),
     new Money(50),
     REQUESTED_AT
   );
@@ -31,17 +31,17 @@ describe('Payment', () => {
       const clientReference = crypto.randomUUID();
       const amount = new Money(50);
 
-      const payment = Payment.request(paymentId, new ClientReference(clientReference), amount, REQUESTED_AT);
+      const payment = Payment.request(paymentId, new ClientReference(Uuid.fromString(clientReference)), amount, REQUESTED_AT);
 
       expect(payment.id()).toEqual(paymentId);
-      expect(payment.clientReference().value).toEqual(clientReference);
+      expect(payment.clientReference().toString()).toEqual(clientReference);
       expect(payment.amount()).toEqual(amount);
       expect(payment.status()).toEqual(PaymentStatus.REQUESTED);
     });
 
     it('should fail if parameters are null', () => {
       const paymentId = generateId((value) => new PaymentId(value));
-      const clientReference = new ClientReference(crypto.randomUUID());
+      const clientReference = new ClientReference(Uuid.fromString(crypto.randomUUID()));
       const amount = new Money(50);
 
       expect(() => Payment.request(null as unknown as PaymentId, clientReference, amount, REQUESTED_AT)).toThrow();

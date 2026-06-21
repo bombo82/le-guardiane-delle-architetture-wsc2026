@@ -83,7 +83,7 @@ export class PaymentInternalApi {
     try {
       command = requestPayment(
         paymentId,
-        new ClientReference(request.clientReference),
+        new ClientReference(Uuid.fromString(request.clientReference)),
         new Money(Number(request.amount)),
         new Timestamp(new Date(request.requestedAt))
       );
@@ -143,7 +143,7 @@ export class PaymentInternalApi {
 
     let payment;
     try {
-      payment = this._paymentFinder.findDetailsByClientReference(new ClientReference(clientReference));
+      payment = this._paymentFinder.findDetailsByClientReference(new ClientReference(Uuid.fromString(clientReference)));
     } catch (error) {
       res.status(400).send(getErrorMessage(error, 'bad request'));
       return;

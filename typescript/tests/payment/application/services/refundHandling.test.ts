@@ -83,7 +83,7 @@ describe('RefundHandling', () => {
     it('should refund when provider succeeds', () => {
       const paymentId = seedAcceptedPayment('PayPal', 50);
 
-      refundHandling.on(refundRequested(paymentId, new ClientReference(crypto.randomUUID()), new Money(50)));
+      refundHandling.on(refundRequested(paymentId, new ClientReference(Uuid.fromString(crypto.randomUUID())), new Money(50)));
 
       const loaded = repository.findById(paymentId);
       expect(loaded).not.toBeNull();
@@ -98,7 +98,7 @@ describe('RefundHandling', () => {
     it('should notify failure when provider rejects', () => {
       const paymentId = seedAcceptedPayment('Klarna', 50);
 
-      refundHandling.on(refundRequested(paymentId, new ClientReference(crypto.randomUUID()), new Money(50)));
+      refundHandling.on(refundRequested(paymentId, new ClientReference(Uuid.fromString(crypto.randomUUID())), new Money(50)));
 
       const loaded = repository.findById(paymentId);
       expect(loaded).not.toBeNull();
@@ -110,7 +110,7 @@ describe('RefundHandling', () => {
     it('should refund all accepted transactions', () => {
       const paymentId = seedSplitPayment('PayPal', 60, 'GiftCard', 40);
 
-      refundHandling.on(refundRequested(paymentId, new ClientReference(crypto.randomUUID()), new Money(100)));
+      refundHandling.on(refundRequested(paymentId, new ClientReference(Uuid.fromString(crypto.randomUUID())), new Money(100)));
 
       const loaded = repository.findById(paymentId);
       expect(loaded).not.toBeNull();
@@ -125,7 +125,7 @@ describe('RefundHandling', () => {
     it('should mark successful transactions as refunded even if one fails', () => {
       const paymentId = seedSplitPayment('PayPal', 60, 'Klarna', 40);
 
-      refundHandling.on(refundRequested(paymentId, new ClientReference(crypto.randomUUID()), new Money(100)));
+      refundHandling.on(refundRequested(paymentId, new ClientReference(Uuid.fromString(crypto.randomUUID())), new Money(100)));
 
       const loaded = repository.findById(paymentId);
       expect(loaded).not.toBeNull();
@@ -139,7 +139,7 @@ describe('RefundHandling', () => {
     it('should fail if payment not found', () => {
       const paymentId = generateId((value) => new PaymentId(value));
 
-      expect(() => refundHandling.on(refundRequested(paymentId, new ClientReference(crypto.randomUUID()), new Money(10)))).toThrow();
+      expect(() => refundHandling.on(refundRequested(paymentId, new ClientReference(Uuid.fromString(crypto.randomUUID())), new Money(10)))).toThrow();
     });
   });
 
@@ -148,7 +148,7 @@ describe('RefundHandling', () => {
     const clientReference = crypto.randomUUID();
     const money = new Money(amount);
     const requestedAt = Timestamp.now();
-    const payment = Payment.request(paymentId, new ClientReference(clientReference), money, requestedAt);
+    const payment = Payment.request(paymentId, new ClientReference(Uuid.fromString(clientReference)), money, requestedAt);
     const transactionId = generateId((value) => new TransactionId(value));
     payment.startTransaction(
       transactionId,
@@ -167,7 +167,7 @@ describe('RefundHandling', () => {
     const clientReference = crypto.randomUUID();
     const total = new Money(firstAmount + secondAmount);
     const requestedAt = Timestamp.now();
-    const payment = Payment.request(paymentId, new ClientReference(clientReference), total, requestedAt);
+    const payment = Payment.request(paymentId, new ClientReference(Uuid.fromString(clientReference)), total, requestedAt);
 
     const firstTx = generateId((value) => new TransactionId(value));
     payment.startTransaction(

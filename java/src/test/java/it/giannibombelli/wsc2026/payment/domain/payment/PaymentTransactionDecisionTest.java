@@ -32,7 +32,7 @@ class PaymentTransactionDecisionTest {
         Instant providerCompletion = Instant.parse("2026-06-07T11:00:00Z");
 
         PaymentId pid = new PaymentId(UUID.randomUUID());
-        Payment p = Payment.request(pid, new ClientReference(CLIENT_REFERENCE), TOTAL, new Timestamp(requestedAt));
+        Payment p = Payment.request(pid, new ClientReference(UUID.fromString(CLIENT_REFERENCE)), TOTAL, new Timestamp(requestedAt));
         TransactionId txId = startTransaction(p, PAYPAL, TOTAL, requestedAt.plusSeconds(1));
 
         PaymentResultEvents evt = p.acceptTransaction(txId, new Timestamp(providerCompletion));
@@ -46,7 +46,7 @@ class PaymentTransactionDecisionTest {
         Instant requestedAt = Instant.parse("2026-06-07T09:00:00Z");
 
         PaymentId pid = new PaymentId(UUID.randomUUID());
-        Payment p = Payment.request(pid, new ClientReference(CLIENT_REFERENCE), TOTAL, new Timestamp(requestedAt));
+        Payment p = Payment.request(pid, new ClientReference(UUID.fromString(CLIENT_REFERENCE)), TOTAL, new Timestamp(requestedAt));
         TransactionId txA = startTransaction(p, PAYPAL, new Money(new java.math.BigDecimal("40.00")), requestedAt.plusSeconds(1));
         p.acceptTransaction(txA, new Timestamp(requestedAt.plusSeconds(3600)));
 
@@ -63,7 +63,7 @@ class PaymentTransactionDecisionTest {
         Instant txTime = Instant.parse("2026-06-07T10:30:00Z");
 
         PaymentId pid = new PaymentId(UUID.randomUUID());
-        Payment p = Payment.request(pid, new ClientReference(CLIENT_REFERENCE), TOTAL, new Timestamp(requestedAt));
+        Payment p = Payment.request(pid, new ClientReference(UUID.fromString(CLIENT_REFERENCE)), TOTAL, new Timestamp(requestedAt));
         TransactionId txId = startTransaction(p, PAYPAL, new Money(new java.math.BigDecimal("60.00")), requestedAt.plusSeconds(1));
 
         p.acceptTransaction(txId, new Timestamp(txTime));
@@ -78,7 +78,7 @@ class PaymentTransactionDecisionTest {
         Instant tx2 = Instant.parse("2026-06-08T06:59:59Z");
 
         PaymentId pid = new PaymentId(UUID.randomUUID());
-        Payment p = Payment.request(pid, new ClientReference(CLIENT_REFERENCE), TOTAL, new Timestamp(requestedAt));
+        Payment p = Payment.request(pid, new ClientReference(UUID.fromString(CLIENT_REFERENCE)), TOTAL, new Timestamp(requestedAt));
         TransactionId txA = startTransaction(p, PAYPAL, new Money(new java.math.BigDecimal("60.00")), requestedAt.plusSeconds(1));
         p.acceptTransaction(txA, new Timestamp(tx1));
         TransactionId txB = startTransaction(p, KLARNA, new Money(new java.math.BigDecimal("40.00")), requestedAt.plusSeconds(2));
@@ -95,7 +95,7 @@ class PaymentTransactionDecisionTest {
         Instant late = Instant.parse("2026-06-06T00:00:00Z");
 
         PaymentId pid = new PaymentId(UUID.randomUUID());
-        Payment p = Payment.request(pid, new ClientReference(CLIENT_REFERENCE), TOTAL, new Timestamp(requestedAt));
+        Payment p = Payment.request(pid, new ClientReference(UUID.fromString(CLIENT_REFERENCE)), TOTAL, new Timestamp(requestedAt));
         TransactionId txA = startTransaction(p, PAYPAL, new Money(new java.math.BigDecimal("50.00")), requestedAt.plusSeconds(1));
         p.acceptTransaction(txA, new Timestamp(timely));
         TransactionId txB = startTransaction(p, KLARNA, new Money(new java.math.BigDecimal("50.00")), requestedAt.plusSeconds(2));

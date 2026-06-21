@@ -50,6 +50,6 @@ public final class PaymentPolicy implements Policy<PaymentResultEvents, BookingC
     }
 
     private BookingId bookingIdFrom(ClientReference clientReference) {
-        return new BookingId(UUID.fromString(clientReference.value()));
+        return new BookingId(clientReference.value());
     }
 }

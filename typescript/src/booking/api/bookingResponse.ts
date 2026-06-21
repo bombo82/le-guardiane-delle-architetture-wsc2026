@@ -1,6 +1,6 @@
 // DTO di risposta per una prenotazione.
 
-import { Booking } from '../domain/booking/booking.js';
+import { type BookingDetails } from '../application/query/bookingDetails.js';
 
 export type BookingResponse = {
   readonly id: string;
@@ -8,10 +8,10 @@ export type BookingResponse = {
   readonly giftCardId: string;
 };
 
-export function toBookingResponse(booking: Booking): BookingResponse {
+export function toBookingResponse(booking: BookingDetails): BookingResponse {
   return {
-    id: booking.id().value.value,
-    description: booking.description().value,
-    giftCardId: booking.giftCardId().value.value,
+    id: booking.id,
+    description: booking.description.value,
+    giftCardId: booking.giftCardId,
   };
 }

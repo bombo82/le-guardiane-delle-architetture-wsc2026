@@ -4,11 +4,11 @@ import io.javalin.config.JavalinConfig;
 import io.javalin.http.Context;
 import io.javalin.openapi.*;
 import it.giannibombelli.wsc2026.booking.application.commands.PlaceBooking;
+import it.giannibombelli.wsc2026.booking.application.query.BookingDetails;
+import it.giannibombelli.wsc2026.booking.application.query.BookingQueryService;
 import it.giannibombelli.wsc2026.booking.application.usecases.BookingPlacing;
-import it.giannibombelli.wsc2026.booking.domain.booking.Booking;
 import it.giannibombelli.wsc2026.booking.domain.booking.BookingId;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingPlaced;
-import it.giannibombelli.wsc2026.booking.infrastructure.SqliteBookingRepository;
 import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.Description;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
@@ -21,11 +21,11 @@ import static io.javalin.apibuilder.ApiBuilder.post;
 
 public final class BookingApi {
     private final BookingPlacing bookingPlacing;
-    private final SqliteBookingRepository bookingRepository;
+    private final BookingQueryService bookingQueryService;
 
-    public BookingApi(BookingPlacing bookingPlacing, SqliteBookingRepository bookingRepository) {
+    public BookingApi(BookingPlacing bookingPlacing, BookingQueryService bookingQueryService) {
         this.bookingPlacing = bookingPlacing;
-        this.bookingRepository = bookingRepository;
+        this.bookingQueryService = bookingQueryService;
     }
 
     public void configure(JavalinConfig config) {
@@ -100,7 +100,7 @@ public final class BookingApi {
             return;
         }
 
-        var bookingOpt = bookingRepository.findById(event.aggregateId());
+        var bookingOpt = bookingQueryService.findById(event.aggregateId());
         if (bookingOpt.isEmpty()) {
             ctx.status(500).result("booking not found after creation");
             return;
@@ -129,7 +129,7 @@ public final class BookingApi {
             return;
         }
 
-        var bookingOpt = bookingRepository.findById(id);
+        var bookingOpt = bookingQueryService.findById(id);
         if (bookingOpt.isEmpty()) {
             ctx.status(404);
             return;
@@ -157,7 +157,7 @@ public final class BookingApi {
         }
     }
 
-    static BookingResponse toResponse(Booking booking) {
-        return new BookingResponse(booking.id().value(), booking.description().value(), booking.giftCardId().value());
+    static BookingResponse toResponse(BookingDetails booking) {
+        return new BookingResponse(booking.id(), booking.description().value(), booking.giftCardId());
     }
 }

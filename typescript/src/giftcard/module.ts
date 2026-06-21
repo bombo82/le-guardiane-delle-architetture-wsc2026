@@ -4,6 +4,7 @@ import type { Express } from 'express';
 import Database from 'better-sqlite3';
 import { ApplicationModule } from '@/common/module/applicationModule.js';
 import { GiftCardApi } from './api/giftCardApi.js';
+import { GiftCardQueryService } from './application/query/giftCardQueryService.js';
 import { BookingResultCrediting } from './application/services/bookingResultCrediting.js';
 import { BookingResultRefunding } from './application/services/bookingResultRefunding.js';
 import { TopUpConfirmation } from './application/services/topUpConfirmation.js';
@@ -69,8 +70,9 @@ export class GiftCardModule extends ApplicationModule {
   configure(app: Express): void {
     const giftCardIssuing = new GiftCardIssuing(this._giftCardRepository);
     const topUpRequesting = new TopUpRequesting(this._giftCardRepository, this._eventBus);
+    const giftCardQueryService = new GiftCardQueryService(this._giftCardRepository);
 
-    const api = new GiftCardApi(giftCardIssuing, this._giftCardRepository, topUpRequesting);
+    const api = new GiftCardApi(giftCardIssuing, giftCardQueryService, topUpRequesting);
     api.configure(app);
   }
 

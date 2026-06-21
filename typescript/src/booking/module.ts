@@ -4,6 +4,7 @@ import type { Express } from 'express';
 import Database from 'better-sqlite3';
 import { ApplicationModule } from '@/common/module/applicationModule.js';
 import { BookingApi } from './api/bookingApi.js';
+import { BookingQueryService } from './application/query/bookingQueryService.js';
 import { PaymentResultOutcome } from './application/services/paymentResultOutcome.js';
 import { BookingConfirming } from './application/usecases/bookingConfirming.js';
 import { BookingPlacing } from './application/usecases/bookingPlacing.js';
@@ -54,8 +55,9 @@ export class BookingModule extends ApplicationModule {
 
   configure(app: Express): void {
     const bookingPlacing = new BookingPlacing(this._bookingRepository, this._eventBus);
+    const bookingQueryService = new BookingQueryService(this._bookingRepository);
 
-    const api = new BookingApi(bookingPlacing, this._bookingRepository);
+    const api = new BookingApi(bookingPlacing, bookingQueryService);
     api.configure(app);
   }
 

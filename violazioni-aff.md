@@ -9,14 +9,14 @@
 
 | Implementazione | Test AFF totali | Falliti | Passati |
 |---|---|---|---|
-| Java | 33 | **4** | 29 |
-| TypeScript | 34 | **4** | 30 |
+| Java | 33 | **2** | 31 |
+| TypeScript | 34 | **2** | 32 |
 
-Le violazioni si concentrano in **tre aree**:
+Le violazioni si concentrano in **un'unica area**:
 
-1. **Layer interni esagonali** — l'`api` dipende direttamente dall'`infrastructure` (handler → repository concreto).
-2. **Shape rules** — nessuna violazione attiva; `PaymentCharging` è stato ricollocato in `application/services` e tutte le policy implementano `Policy`.
-3. **Confini tra Bounded Context** — `booking` e `giftcard` dipendono direttamente da altri BC.
+1. **Confini tra Bounded Context** — `booking` e `giftcard` dipendono direttamente da altri BC.
+
+Layer interni esagonali e shape rules sono ora **tutti a posto**.
 
 ---
 
@@ -27,11 +27,11 @@ Le violazioni si concentrano in **tre aree**:
 | BC | Regola AFF | Stato | Dettaglio |
 |---|---|---|---|
 | `booking` | `domain` non dipende da outer layers | ✅ OK | Le policy sono state spostate in `application/policies`. |
-| `booking` | `api` non dipende da `infrastructure` | ❌ Fallita | `BookingApi` dipende direttamente da `SqliteBookingRepository`. |
+| `booking` | `api` non dipende da `infrastructure` | ✅ OK | `BookingApi` usa `BookingQueryService` in `application/query`. |
 | `booking` | `application` non dipende da adapter | ✅ OK | — |
 | `booking` | `infrastructure` non dipende da `api` | ✅ OK | — |
 | `giftcard` | `domain` non dipende da outer layers | ✅ OK | Le policy sono state spostate in `application/policies`. |
-| `giftcard` | `api` non dipende da `infrastructure` | ❌ Fallita | `GiftCardApi` dipende direttamente da `SqliteGiftCardRepository`. |
+| `giftcard` | `api` non dipende da `infrastructure` | ✅ OK | `GiftCardApi` usa `GiftCardQueryService` in `application/query`. |
 | `giftcard` | `application` non dipende da adapter | ✅ OK | — |
 | `giftcard` | `infrastructure` non dipende da `api` | ✅ OK | — |
 | `payment` | `domain` non dipende da outer layers | ✅ OK | Le policy sono state spostate in `application/policies`. |
@@ -46,18 +46,24 @@ Le violazioni si concentrano in **tre aree**:
 > - l'interfaccia `Policy` è stata spostata da `common.domain.model` a `common.application`;
 > - `PaymentCharging`, che non restituiva un command ma invocava direttamente il provider, è stato ricollocato in `payment.application.services`.
 
-#### Pattern: API che bypassa il layer application/query
+#### Pattern risolto: query layer tra API e infrastructure
 
 ```text
 booking.api.BookingApi
+  → booking.application.query.BookingQueryService
+  → booking.domain.ports.BookingRepository
   → booking.infrastructure.SqliteBookingRepository
 
 giftcard.api.GiftCardApi
+  → giftcard.application.query.GiftCardQueryService
+  → giftcard.domain.ports.GiftCardRepository
   → giftcard.infrastructure.SqliteGiftCardRepository
 ```
 
-> **Nota didattica — perché non bypassare il layer application/query?**  
-> L'`api` non dovrebbe dipendere direttamente dall'`infrastructure`. Tra i due deve esistere il layer `application/query` (o un read model) che espone i dati nel formato richiesto dall'API. Questo strato intermedio disaccoppia la rappresentazione interna del dominio (entità, aggregate, value object) dalla rappresentazione pubblica esposta tramite API, permettendo di far evolvere indipendentemente gli internals e il contratto HTTP.
+> **Nota didattica — perché un layer `application/query`?**  
+> L'`api` non dovrebbe dipendere direttamente dall'`infrastructure`. Tra i due è stato introdotto il layer `application/query`, composto da query service e read model (`BookingDetails`, `GiftCardDetails`), che espone i dati nel formato richiesto dall'API. Il query service dipende dalla porta del repository (`domain.ports`), non dall'implementazione concreta SQLite. Questo strato intermedio disaccoppia la rappresentazione interna del dominio dalla rappresentazione pubblica esposta tramite API.
+>
+> I DTO di query riutilizzano i value object di dominio (`Description`, `Money`) e tipi semplici (`UUID`, `String`), quindi rimangono all'interno delle regole di purity del layer `application`: non è necessaria alcuna esclusione specifica per `application.query`.
 >
 > Se l'architettura interna fosse **CQRS** con un **read model** dedicato, il bypass del layer applicativo diventerebbe accettabile: in quel caso la rappresentazione dei dati nel database è già ottimizzata e strettamente dipendente dalla query che si sta servendo, quindi l'API può leggere direttamente dal repository/read store senza perdere disaccoppiamento.
 
@@ -171,13 +177,11 @@ giftcard
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│              VIOLAZIONI LAYER INTERNE (per BC)                  │
+│              LAYER INTERNI (nessuna violazione)                 │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│   API ──────────────┐                                           │
-│   │                 │  (bypass applicazione/query)              │
-│   ▼                 ▼                                           │
-│   Infra ◄──X── API  booking, giftcard                           │
+│   API ──► Query Service ──► Porta Repository ──► Infra          │
+│          booking, giftcard                                      │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -207,7 +211,6 @@ giftcard
 
 | Violazione | Perché è un problema | Effetto sul refactoring |
 |---|---|---|
-| API → Infrastructure | L'adapter di ingresso conosce l'adapter di uscita, bypassando la porta. | Impossibile sostituire il repository senza toccare l'handler HTTP. |
 | Cross-BC dependencies | I BC non sono più isolati; un cambiamento in `payment` si propaga in `booking` e `giftcard`. | Rottura del confine modulare; difficile estrarre un BC in micro-servizio. |
 
 ---
@@ -215,5 +218,5 @@ giftcard
 ## Note
 
 - I test AFF che rilevano queste violazioni sono **attivi** (non `@Disabled`) sia in Java che in TypeScript.
-- Le violazioni rimanenti sono quelle presenti nel branch `solutions` a valle dello spostamento delle policy in `application`.
+- Le violazioni rimanenti nel branch `solutions` sono solo le dipendenze cross-BC.
 - Il branch `feature/usecase-aff-rule` contiene invece l'evoluzione con la regola `useCasesMustImplementUseCase`, da approfondire in un momento successivo del workshop.

@@ -7,11 +7,11 @@ import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
 import it.giannibombelli.wsc2026.giftcard.application.commands.IssueGiftCard;
 import it.giannibombelli.wsc2026.giftcard.application.commands.RequestGiftCardTopUp;
+import it.giannibombelli.wsc2026.giftcard.application.query.GiftCardDetails;
+import it.giannibombelli.wsc2026.giftcard.application.query.GiftCardQueryService;
 import it.giannibombelli.wsc2026.giftcard.application.usecases.GiftCardIssuing;
 import it.giannibombelli.wsc2026.giftcard.application.usecases.TopUpRequesting;
-import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCard;
 import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCardId;
-import it.giannibombelli.wsc2026.giftcard.infrastructure.SqliteGiftCardRepository;
 
 import java.util.UUID;
 
@@ -20,12 +20,12 @@ import static io.javalin.apibuilder.ApiBuilder.post;
 
 public final class GiftCardApi {
     private final GiftCardIssuing giftCardIssuing;
-    private final SqliteGiftCardRepository giftCardRepository;
+    private final GiftCardQueryService giftCardQueryService;
     private final TopUpRequesting topUpRequesting;
 
-    public GiftCardApi(GiftCardIssuing giftCardIssuing, SqliteGiftCardRepository giftCardRepository, TopUpRequesting topUpRequesting) {
+    public GiftCardApi(GiftCardIssuing giftCardIssuing, GiftCardQueryService giftCardQueryService, TopUpRequesting topUpRequesting) {
         this.giftCardIssuing = giftCardIssuing;
-        this.giftCardRepository = giftCardRepository;
+        this.giftCardQueryService = giftCardQueryService;
         this.topUpRequesting = topUpRequesting;
     }
 
@@ -142,7 +142,7 @@ public final class GiftCardApi {
             return;
         }
 
-        var cardOpt = giftCardRepository.findById(id);
+        var cardOpt = giftCardQueryService.findById(id);
         if (cardOpt.isEmpty()) {
             ctx.status(404);
             return;
@@ -171,7 +171,7 @@ public final class GiftCardApi {
     }
 
     private GiftCardResponse loadGiftCardResponse(Context ctx, GiftCardId cardId) {
-        var cardOpt = giftCardRepository.findById(cardId);
+        var cardOpt = giftCardQueryService.findById(cardId);
         if (cardOpt.isEmpty()) {
             ctx.status(500).result("gift card not found after update");
             return null;
@@ -179,9 +179,9 @@ public final class GiftCardApi {
         return toResponse(cardOpt.get());
     }
 
-    static GiftCardResponse toResponse(GiftCard card) {
+    static GiftCardResponse toResponse(GiftCardDetails card) {
         return new GiftCardResponse(
-            card.id().value(),
+            card.id(),
             card.balance().value()
         );
     }

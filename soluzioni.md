@@ -83,19 +83,51 @@ Spostando l'interfaccia `Policy` in `common.application`:
 
 ---
 
-## 3. Cosa non è stato ancora risolto (e perché)
+## 3. Introduzione del layer `application/query`
 
-Le seguenti violazioni rimangono attive sul branch `solutions` perché richiedono scelte architetturali più ampie o sono volute per il percorso didattico.
+### Problema
 
-### 3.1 API → Infrastructure
+`BookingApi` e `GiftCardApi` dipendevano direttamente dai rispettivi repository SQLite (`SqliteBookingRepository` e `SqliteGiftCardRepository`), violando la regola esagonale che vuole l'`api` separata dall'`infrastructure`.
 
-`BookingApi` e `GiftCardApi` dipendono direttamente dai rispettivi repository SQLite.
+### Soluzione
 
-**Perché non è stato risolto:** l'introduzione di un layer `application/query` (o di un read model) richiede di modellare esplicitamente i DTO di lettura e di decidere se adottare CQRS. È un punto centrale del workshop che viene lasciato ai partecipanti.
+È stato introdotto un layer `application/query` per ciascun BC:
 
-**Direzione:** o si introduce un `BookingQueryService`/`GiftCardQueryService` tra API e repository, oppure si adotta un read model CQRS in cui la query legge direttamente una rappresentazione ottimizzata.
+- `BookingQueryService` + `BookingDetails` in `booking.application.query`;
+- `GiftCardQueryService` + `GiftCardDetails` in `giftcard.application.query`.
 
-### 3.2 Cross-Bounded Context dependencies
+L'`api` ora dipende solo dal query service; il query service dipende dalla porta del repository (`domain.ports`), non dall'implementazione SQLite.
+
+```text
+booking.api.BookingApi
+  → booking.application.query.BookingQueryService
+  → booking.domain.ports.BookingRepository
+  → booking.infrastructure.SqliteBookingRepository
+
+giftcard.api.GiftCardApi
+  → giftcard.application.query.GiftCardQueryService
+  → giftcard.domain.ports.GiftCardRepository
+  → giftcard.infrastructure.SqliteGiftCardRepository
+```
+
+### Motivazione
+
+Il query layer:
+
+- disaccoppia il contratto HTTP dai dettagli di persistenza;
+- permette di far evolvere indipendentemente il modello di dominio e il DTO di risposta;
+- mantiene la dipendenza esagonale corretta, perché `application.query` dipende solo dalla porta del repository;
+- fornisce un punto naturale in cui introdurre in futuro un read model CQRS, senza toccare l'`api`.
+
+> Nota sulle regole di purity: i DTO di query (`BookingDetails`, `GiftCardDetails`) riutilizzano i value object di dominio (`Description`, `Money`) e tipi semplici (`UUID`, `String`), mantenendo il package `application.query` allineato alle regole di purity degli altri layer application. Non è stata introdotta alcuna esclusione specifica, perché i query service non dipendono da librerie/framework e i read model sono ancora parte del contratto applicativo.
+
+---
+
+## 4. Cosa non è stato ancora risolto (e perché)
+
+L'unica violazione rimasta attiva sul branch `solutions` riguarda i confini tra Bounded Context.
+
+### Cross-Bounded Context dependencies
 
 `booking` e `giftcard` dipendono direttamente da tipi di `payment` e, parzialmente, tra loro.
 
@@ -109,6 +141,6 @@ Questo punto viene approfondito nelle soluzioni finali del workshop.
 
 ---
 
-## 4. Evoluzioni future
+## 5. Evoluzioni future
 
 Il branch `feature/usecase-aff-rule` contiene un'ulteriore evoluzione: una regola `useCasesMustImplementUseCase` che verifica che tutte le classi in `application/usecases` implementino l'interfaccia `UseCase`. Quella regola rileva che `PaymentExpiring`, `TransactionAccepting` e `TransactionRejecting` sono in realtà `EventSubscriber`, non use case: apre il discorso su dove collocare gli orchestratori event-driven e su come distinguere use case, servizi applicativi e event handler. Il tema verrà affrontato in un momento successivo del workshop.

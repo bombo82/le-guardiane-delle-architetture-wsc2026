@@ -1,6 +1,4 @@
 // API pubbliche del Booking Bounded Context.
-// Violazione didattica: l'API dipende direttamente dall'infrastructure repository.
-
 
 import express, { type Express, type ErrorRequestHandler, type Request, type Response } from 'express';
 import { getErrorMessage } from '@/common/api/errorMessage.js';
@@ -9,9 +7,9 @@ import { Description } from '@/common/domain/primitive/description.js';
 import { Money } from '@/common/domain/primitive/money.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';
 import { GiftCardId } from '@/giftcard/domain/giftcard/giftCardId.js';
+import { BookingQueryService } from '../application/query/bookingQueryService.js';
 import { BookingPlacing } from '../application/usecases/bookingPlacing.js';
 import { BookingId } from '../domain/booking/bookingId.js';
-import { SqliteBookingRepository } from '../infrastructure/sqliteBookingRepository.js';
 import { placeBooking } from '../application/commands/placeBooking.js';
 import { parsePlaceBookingRequest } from './placeBookingRequest.js';
 import { toBookingResponse } from './bookingResponse.js';
@@ -19,13 +17,13 @@ import { requireDependency } from '@/common/utils/requireDependency.js';
 
 export class BookingApi {
   private readonly _bookingPlacing: BookingPlacing;
-  private readonly _bookingRepository: SqliteBookingRepository;
+  private readonly _bookingQueryService: BookingQueryService;
 
-  constructor(bookingPlacing: BookingPlacing, bookingRepository: SqliteBookingRepository) {
+  constructor(bookingPlacing: BookingPlacing, bookingQueryService: BookingQueryService) {
     requireDependency(bookingPlacing, "bookingPlacing");
-    requireDependency(bookingRepository, "bookingRepository");
+    requireDependency(bookingQueryService, "bookingQueryService");
     this._bookingPlacing = bookingPlacing;
-    this._bookingRepository = bookingRepository;
+    this._bookingQueryService = bookingQueryService;
   }
 
   configure(app: Express): void {
@@ -110,7 +108,7 @@ export class BookingApi {
       return;
     }
 
-    const booking = this._bookingRepository.findById(event.aggregateId);
+    const booking = this._bookingQueryService.findById(event.aggregateId);
     if (booking === null) {
       res.status(500).send('booking not found after placing');
       return;
@@ -152,7 +150,7 @@ export class BookingApi {
       return;
     }
 
-    const booking = this._bookingRepository.findById(id);
+    const booking = this._bookingQueryService.findById(id);
     if (booking === null) {
       res.status(404).send();
       return;

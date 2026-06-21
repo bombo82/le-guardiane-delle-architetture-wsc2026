@@ -1,15 +1,15 @@
 // DTO di risposta per una gift card.
 
-import { GiftCard } from '../domain/giftcard/giftCard.js';
+import { type GiftCardDetails } from '../application/query/giftCardDetails.js';
 
 export type GiftCardResponse = {
   readonly id: string;
   readonly balance: number;
 };
 
-export function toGiftCardResponse(card: GiftCard): GiftCardResponse {
+export function toGiftCardResponse(card: GiftCardDetails): GiftCardResponse {
   return {
-    id: card.id().value.value,
-    balance: card.balance().value,
+    id: card.id,
+    balance: card.balance.value,
   };
 }

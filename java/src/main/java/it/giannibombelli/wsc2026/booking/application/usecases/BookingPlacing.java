@@ -26,11 +26,11 @@ public final class BookingPlacing implements UseCase<PlaceBooking, BookingPlaced
     public BookingPlaced invoke(PlaceBooking cmd) {
         Require.requireArgument(cmd, "command");
 
-        Booking booking = Booking.place(cmd.aggregateId(), cmd.description(), cmd.giftCardId());
+        Booking booking = Booking.place(cmd.aggregateId(), cmd.description(), cmd.giftCardReference());
 
         bookingRepository.save(booking);
 
-        BookingPlaced bookingPlaced = new BookingPlaced(booking.id(), cmd.amount(), booking.description(), booking.giftCardId());
+        BookingPlaced bookingPlaced = new BookingPlaced(booking.id(), cmd.amount(), booking.description(), booking.giftCardReference().value());
         eventPublisher.publish(bookingPlaced);
 
         return bookingPlaced;

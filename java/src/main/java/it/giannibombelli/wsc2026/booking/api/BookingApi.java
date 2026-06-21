@@ -9,10 +9,10 @@ import it.giannibombelli.wsc2026.booking.application.query.BookingQueryService;
 import it.giannibombelli.wsc2026.booking.application.usecases.BookingPlacing;
 import it.giannibombelli.wsc2026.booking.domain.booking.BookingId;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingPlaced;
+import it.giannibombelli.wsc2026.booking.domain.primitive.GiftCardReference;
 import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.Description;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
-import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCardId;
 
 import java.util.UUID;
 
@@ -81,16 +81,16 @@ public final class BookingApi {
             return;
         }
 
-        GiftCardId giftCardId;
+        GiftCardReference giftCardReference;
         try {
-            giftCardId = new GiftCardId(request.giftCardId());
+            giftCardReference = new GiftCardReference(request.giftCardId());
         } catch (IllegalArgumentException ex) {
             ctx.status(400).result(ex.getMessage());
             return;
         }
 
         BookingId bookingId = EntityId.generate(BookingId::new);
-        PlaceBooking command = new PlaceBooking(bookingId, amount, description, giftCardId);
+        PlaceBooking command = new PlaceBooking(bookingId, amount, description, giftCardReference);
 
         BookingPlaced event;
         try {

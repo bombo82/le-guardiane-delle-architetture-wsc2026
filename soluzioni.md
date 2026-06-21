@@ -150,3 +150,27 @@ Il query layer disaccoppia il contratto HTTP dai dettagli di persistenza, lascia
 
 - *Far dipendere l'`api` dalla porta repository*: resterebbe il bypass del layer `application` e l'esposizione del contratto di persistenza nel layer di ingresso.
 - *Restituire l'aggregato di dominio dall'`api`*: esporrebbe il modello interno nel contratto HTTP.
+
+### 4. `GiftCardReference` come linguaggio proprio di `booking`
+
+**Soluzione**
+
+È stato introdotto il value object `booking.domain.primitive.GiftCardReference`, proprietà di `booking`: `Booking` modella il riferimento a una gift card esterna come concetto del proprio dominio. Gli eventi di `booking` lo espongono come published language sotto forma di primitiva (`UUID`/`String`); il BC `giftcard` lo traduce nel proprio `GiftCardId` solo al proprio confine.
+
+**Motivazione**
+
+- Ogni BC possiede il proprio linguaggio: `GiftCardReference` è "una gift card vista da booking", non il concetto interno di `giftcard`.
+- Nessun accoppiamento sui tipi di dominio: `booking` non conosce più `GiftCardId`.
+- La primitiva `UUID`/`String` è un contratto di integrazione semplice e stabile.
+- La traduzione avviene nel BC destinatario, dove il concetto è rilevante.
+
+**Alternative considerate**
+
+| Approccio | Pro | Contro |
+|---|---|---|
+| Shared kernel (`GiftCardId` in `common`) | Nessuna traduzione. | Accoppiamento crescente; rischio di "big ball of shared kernel". |
+| Duplicare `GiftCardId` in `booking` | Rimuove la dipendenza. | Due tipi identici suggeriscono un'identità di concetto inesistente. |
+| Primitiva nuda (`UUID`/`String`) in `Booking` | Massimo decoupling. | Perde espressività nel linguaggio di `booking`. |
+| Eventi di integrazione separati | Isolamento completo. | Richiede un ACL esplicito per direzione (adottato poi nelle sezioni 5-7). |
+
+`GiftCardReference` è il compromesso scelto tra pulizia del modello e semplicità.

@@ -1,5 +1,3 @@
-// Caso d'uso per il rifiuto di una prenotazione.
-
 import type { UseCase } from '@/common/application/usecase.js';
 import type { EventPublisher } from '@/common/application/events/eventPublisher.js';
 import { Booking } from '../../domain/booking/booking.js';
@@ -27,7 +25,7 @@ export class BookingRejecting implements UseCase<RejectBooking, BookingRejected>
 
     const booking = this.findBooking(command.aggregateId);
 
-    const rejected = booking.reject(command.giftCardId, command.amount);
+    const rejected = booking.reject(command.amount);
 
     this._bookingRepository.save(booking);
     this._eventPublisher.publish(rejected);

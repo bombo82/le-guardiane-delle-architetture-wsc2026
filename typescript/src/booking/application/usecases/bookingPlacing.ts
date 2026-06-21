@@ -1,5 +1,3 @@
-// Caso d'uso per l'inserimento di una nuova prenotazione.
-
 import type { UseCase } from '@/common/application/usecase.js';
 import type { EventPublisher } from '@/common/application/events/eventPublisher.js';
 import { Booking } from '../../domain/booking/booking.js';
@@ -24,11 +22,11 @@ export class BookingPlacing implements UseCase<PlaceBooking, BookingPlaced> {
   invoke(command: PlaceBooking): BookingPlaced {
     requireArgument(command, 'command');
 
-    const booking = Booking.place(command.aggregateId, command.description, command.giftCardId);
+    const booking = Booking.place(command.aggregateId, command.description, command.giftCardReference);
 
     this._bookingRepository.save(booking);
 
-    const placed = bookingPlaced(booking.id(), command.amount, booking.description(), booking.giftCardId());
+    const placed = bookingPlaced(booking.id(), command.amount, booking.description(), booking.giftCardReference().value.value);
     this._eventPublisher.publish(placed);
 
     return placed;

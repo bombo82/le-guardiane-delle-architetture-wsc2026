@@ -4,9 +4,9 @@ import it.giannibombelli.wsc2026.booking.domain.booking.Booking;
 import it.giannibombelli.wsc2026.booking.domain.booking.BookingId;
 import it.giannibombelli.wsc2026.booking.domain.booking.BookingStatus;
 import it.giannibombelli.wsc2026.booking.domain.ports.BookingRepository;
+import it.giannibombelli.wsc2026.booking.domain.primitive.GiftCardReference;
 import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.Description;
-import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCardId;
 import it.giannibombelli.wsc2026.testsupport.DatabaseSetup;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -15,6 +15,7 @@ import org.junit.jupiter.api.TestInstance;
 
 import javax.sql.DataSource;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,8 +34,8 @@ class BookingRepositoryTest {
         @Test
         void shouldPersistNewBooking() {
             BookingId bookingId = EntityId.generate(BookingId::new);
-            GiftCardId giftCardId = EntityId.generate(GiftCardId::new);
-            Booking original = new Booking(bookingId, new Description("Test description"), giftCardId, BookingStatus.PLACED);
+            GiftCardReference giftCardReference = new GiftCardReference(UUID.randomUUID());
+            Booking original = new Booking(bookingId, new Description("Test description"), giftCardReference, BookingStatus.PLACED);
 
             repository.save(original);
             Optional<Booking> reloaded = repository.findById(bookingId);
@@ -42,7 +43,7 @@ class BookingRepositoryTest {
             assertThat(reloaded).isPresent();
             assertThat(reloaded.get().id()).isEqualTo(bookingId);
             assertThat(reloaded.get().description()).isEqualTo(original.description());
-            assertThat(reloaded.get().giftCardId()).isEqualTo(giftCardId);
+            assertThat(reloaded.get().giftCardReference()).isEqualTo(giftCardReference);
             assertThat(reloaded.get().status()).isEqualTo(BookingStatus.PLACED);
         }
     }

@@ -17,7 +17,7 @@ describe('CreditGiftCardPolicy', () => {
     const giftCardId = generateId((value) => new GiftCardId(value));
     const amount = new Money(50);
     const bookingId = GiftCardAggregateFactory.createBooking();
-    const event = bookingConfirmed(bookingId, giftCardId, amount);
+    const event = bookingConfirmed(bookingId, giftCardId.value.value, amount);
 
     const result = policy.evaluate(event);
 
@@ -30,7 +30,7 @@ describe('CreditGiftCardPolicy', () => {
     const giftCardId = generateId((value) => new GiftCardId(value));
     const amount = new Money(100);
     const bookingId = GiftCardAggregateFactory.createBooking();
-    const event = bookingRejected(bookingId, giftCardId, amount);
+    const event = bookingRejected(bookingId, giftCardId.value.value, amount);
 
     const result = policy.evaluate(event);
 
@@ -41,7 +41,7 @@ describe('CreditGiftCardPolicy', () => {
     const giftCardId = generateId((value) => new GiftCardId(value));
     const amount = new Money(75.5);
     const bookingId = GiftCardAggregateFactory.createBooking();
-    const event = bookingRefused(bookingId, giftCardId, amount);
+    const event = bookingRefused(bookingId, giftCardId.value.value, amount);
 
     const result = policy.evaluate(event);
 

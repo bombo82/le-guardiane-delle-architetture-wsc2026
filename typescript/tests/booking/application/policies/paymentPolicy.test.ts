@@ -2,11 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { generateId } from '@/common/domain/identity/entityId.js';
 import { Description } from '@/common/domain/primitive/description.js';
 import { Money } from '@/common/domain/primitive/money.js';
+import { Uuid } from '@/common/domain/primitive/uuid.js';
 import { Booking } from '@/booking/domain/booking/booking.js';
 import { BookingId } from '@/booking/domain/booking/bookingId.js';
 import { PaymentPolicy } from '@/booking/application/policies/paymentPolicy.js';
 import { SqliteBookingRepository } from '@/booking/infrastructure/sqliteBookingRepository.js';
-import { GiftCardId } from '@/giftcard/domain/giftcard/giftCardId.js';
+import { GiftCardReference } from '@/booking/domain/primitive/giftCardReference.js';
 import { DatabaseSetup } from '../../../testsupport/databaseSetup.js';
 import { PaymentAggregateFactory } from '../../../testsupport/payment/aggregateFactory.js';
 import {
@@ -25,10 +26,10 @@ describe('PaymentPolicy', () => {
     policy = new PaymentPolicy(bookingRepository);
   });
 
-  it('evaluate on payment accepted returns confirm booking with gift card id from booking', () => {
+  it('evaluate on payment accepted returns confirm booking with gift card reference from booking', () => {
     const bookingId = generateId((value) => new BookingId(value));
-    const giftCardId = generateId((value) => new GiftCardId(value));
-    saveBooking(bookingId, giftCardId);
+    const giftCardReference = new GiftCardReference(Uuid.generate());
+    saveBooking(bookingId, giftCardReference);
 
     const payment = PaymentAggregateFactory.createPayment(bookingId.value.value, new Money(50));
     const amount = new Money(50);
@@ -43,14 +44,14 @@ describe('PaymentPolicy', () => {
     expect(result).not.toBeNull();
     expect(result?.kind).toBe('ConfirmBooking');
     expect(result?.aggregateId).toEqual(bookingId);
-    expect(result?.giftCardId).toEqual(giftCardId);
+    expect(result?.giftCardReference).toEqual(giftCardReference);
     expect(result?.amount).toEqual(amount);
   });
 
-  it('evaluate on payment accepted with non gift card provider returns confirm booking with gift card id from booking', () => {
+  it('evaluate on payment accepted with non gift card provider returns confirm booking with gift card reference from booking', () => {
     const bookingId = generateId((value) => new BookingId(value));
-    const giftCardId = generateId((value) => new GiftCardId(value));
-    saveBooking(bookingId, giftCardId);
+    const giftCardReference = new GiftCardReference(Uuid.generate());
+    saveBooking(bookingId, giftCardReference);
 
     const payment = PaymentAggregateFactory.createPayment(bookingId.value.value, new Money(50));
     const amount = new Money(50);
@@ -65,14 +66,14 @@ describe('PaymentPolicy', () => {
     expect(result).not.toBeNull();
     expect(result?.kind).toBe('ConfirmBooking');
     expect(result?.aggregateId).toEqual(bookingId);
-    expect(result?.giftCardId).toEqual(giftCardId);
+    expect(result?.giftCardReference).toEqual(giftCardReference);
     expect(result?.amount).toEqual(amount);
   });
 
-  it('evaluate on payment rejected returns reject booking with gift card id from booking', () => {
+  it('evaluate on payment rejected returns reject booking with gift card reference from booking', () => {
     const bookingId = generateId((value) => new BookingId(value));
-    const giftCardId = generateId((value) => new GiftCardId(value));
-    saveBooking(bookingId, giftCardId);
+    const giftCardReference = new GiftCardReference(Uuid.generate());
+    saveBooking(bookingId, giftCardReference);
 
     const payment = PaymentAggregateFactory.createPayment(bookingId.value.value, new Money(50));
     const event = paymentRejected(
@@ -87,7 +88,7 @@ describe('PaymentPolicy', () => {
     expect(result).not.toBeNull();
     expect(result?.kind).toBe('RejectBooking');
     expect(result?.aggregateId).toEqual(bookingId);
-    expect(result?.giftCardId).toEqual(giftCardId);
+    expect(result?.giftCardReference).toEqual(giftCardReference);
     expect(result?.amount).toEqual(payment.amount());
   });
 
@@ -136,8 +137,8 @@ describe('PaymentPolicy', () => {
     expect(() => policy.evaluate(null as unknown as Parameters<typeof policy.evaluate>[0])).toThrow();
   });
 
-  function saveBooking(bookingId: BookingId, giftCardId: GiftCardId): void {
-    const booking = Booking.place(bookingId, new Description('Test booking'), giftCardId);
+  function saveBooking(bookingId: BookingId, giftCardReference: GiftCardReference): void {
+    const booking = Booking.place(bookingId, new Description('Test booking'), giftCardReference);
     bookingRepository.save(booking);
   }
 });

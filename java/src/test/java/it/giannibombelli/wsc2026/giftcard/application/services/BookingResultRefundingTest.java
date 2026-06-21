@@ -63,7 +63,7 @@ class BookingResultRefundingTest {
             Money refundAmount = new Money(new BigDecimal("20.00"));
 
             refundGiftCardService.handleBookingResults(
-                new BookingResultEvents.BookingRejected(booking.id(), card.id(), refundAmount)
+                new BookingResultEvents.BookingRejected(booking.id(), card.id().value(), refundAmount)
             );
 
             Optional<GiftCard> after = repository.findById(card.id());
@@ -78,7 +78,7 @@ class BookingResultRefundingTest {
             Money amount = new Money(new BigDecimal("10.00"));
 
             refundGiftCardService.handleBookingResults(
-                new BookingResultEvents.BookingConfirmed(booking.id(), card.id(), amount)
+                new BookingResultEvents.BookingConfirmed(booking.id(), card.id().value(), amount)
             );
 
             GiftCard persisted = repository.findById(card.id()).orElseThrow();
@@ -92,7 +92,7 @@ class BookingResultRefundingTest {
             Money amount = new Money(new BigDecimal("10.00"));
 
             assertThatThrownBy(() -> refundGiftCardService.handleBookingResults(
-                new BookingResultEvents.BookingRejected(booking.id(), nonExisting, amount)
+                new BookingResultEvents.BookingRejected(booking.id(), nonExisting.value(), amount)
             ))
                 .isInstanceOf(IllegalStateException.class);
         }

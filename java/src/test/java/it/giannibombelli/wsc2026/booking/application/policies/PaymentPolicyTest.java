@@ -4,11 +4,11 @@ import it.giannibombelli.wsc2026.booking.application.commands.BookingConfirmatio
 import it.giannibombelli.wsc2026.booking.domain.booking.Booking;
 import it.giannibombelli.wsc2026.booking.domain.booking.BookingId;
 import it.giannibombelli.wsc2026.booking.domain.ports.BookingRepository;
+import it.giannibombelli.wsc2026.booking.domain.primitive.GiftCardReference;
 import it.giannibombelli.wsc2026.booking.infrastructure.SqliteBookingRepository;
 import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.Description;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
-import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCardId;
 import it.giannibombelli.wsc2026.payment.domain.events.PaymentResultEvents;
 import it.giannibombelli.wsc2026.payment.domain.payment.Payment;
 import it.giannibombelli.wsc2026.testsupport.DatabaseSetup;
@@ -38,10 +38,10 @@ class PaymentPolicyTest {
     }
 
     @Test
-    void evaluate_onPaymentAccepted_returnsConfirmBookingWithGiftCardIdFromBooking() {
+    void evaluate_onPaymentAccepted_returnsConfirmBookingWithGiftCardReferenceFromBooking() {
         BookingId bookingId = EntityId.generate(BookingId::new);
-        GiftCardId giftCardId = EntityId.generate(GiftCardId::new);
-        saveBooking(bookingId, giftCardId);
+        GiftCardReference giftCardReference = new GiftCardReference(UUID.randomUUID());
+        saveBooking(bookingId, giftCardReference);
 
         Payment payment = createPayment(bookingId.value().toString(), new Money(new BigDecimal("50.00")));
         Money amount = new Money(new BigDecimal("50.00"));
@@ -55,15 +55,15 @@ class PaymentPolicyTest {
         ConfirmBooking cmd = (ConfirmBooking) result;
         assertThat(cmd).isNotNull();
         assertThat(cmd.aggregateId()).isEqualTo(bookingId);
-        assertThat(cmd.giftCardId()).isEqualTo(giftCardId);
+        assertThat(cmd.giftCardReference()).isEqualTo(giftCardReference);
         assertThat(cmd.amount()).isEqualTo(amount);
     }
 
     @Test
-    void evaluate_onPaymentAccepted_withNonGiftCardProvider_returnsConfirmBookingWithGiftCardIdFromBooking() {
+    void evaluate_onPaymentAccepted_withNonGiftCardProvider_returnsConfirmBookingWithGiftCardReferenceFromBooking() {
         BookingId bookingId = EntityId.generate(BookingId::new);
-        GiftCardId giftCardId = EntityId.generate(GiftCardId::new);
-        saveBooking(bookingId, giftCardId);
+        GiftCardReference giftCardReference = new GiftCardReference(UUID.randomUUID());
+        saveBooking(bookingId, giftCardReference);
 
         Payment payment = createPayment(bookingId.value().toString(), new Money(new BigDecimal("50.00")));
         Money amount = new Money(new BigDecimal("50.00"));
@@ -76,15 +76,15 @@ class PaymentPolicyTest {
         assertThat(result).isInstanceOf(ConfirmBooking.class);
         ConfirmBooking cmd = (ConfirmBooking) result;
         assertThat(cmd.aggregateId()).isEqualTo(bookingId);
-        assertThat(cmd.giftCardId()).isEqualTo(giftCardId);
+        assertThat(cmd.giftCardReference()).isEqualTo(giftCardReference);
         assertThat(cmd.amount()).isEqualTo(amount);
     }
 
     @Test
-    void evaluate_onPaymentRejected_returnsRejectBookingWithGiftCardIdFromBooking() {
+    void evaluate_onPaymentRejected_returnsRejectBookingWithGiftCardReferenceFromBooking() {
         BookingId bookingId = EntityId.generate(BookingId::new);
-        GiftCardId giftCardId = EntityId.generate(GiftCardId::new);
-        saveBooking(bookingId, giftCardId);
+        GiftCardReference giftCardReference = new GiftCardReference(UUID.randomUUID());
+        saveBooking(bookingId, giftCardReference);
 
         Payment payment = createPayment(bookingId.value().toString(), new Money(new BigDecimal("50.00")));
         PaymentResultEvents.PaymentRejected event = new PaymentResultEvents.PaymentRejected(
@@ -96,7 +96,7 @@ class PaymentPolicyTest {
         assertThat(result).isInstanceOf(RejectBooking.class);
         RejectBooking cmd = (RejectBooking) result;
         assertThat(cmd.aggregateId()).isEqualTo(bookingId);
-        assertThat(cmd.giftCardId()).isEqualTo(giftCardId);
+        assertThat(cmd.giftCardReference()).isEqualTo(giftCardReference);
         assertThat(cmd.amount()).isEqualTo(payment.amount());
     }
 
@@ -143,8 +143,8 @@ class PaymentPolicyTest {
             .isInstanceOf(IllegalArgumentException.class);
     }
 
-    private void saveBooking(BookingId bookingId, GiftCardId giftCardId) {
-        Booking booking = Booking.place(bookingId, new Description("Test booking"), giftCardId);
+    private void saveBooking(BookingId bookingId, GiftCardReference giftCardReference) {
+        Booking booking = Booking.place(bookingId, new Description("Test booking"), giftCardReference);
         bookingRepository.save(booking);
     }
 }

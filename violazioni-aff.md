@@ -89,8 +89,10 @@ giftcard.api.GiftCardApi
 
 | Regola AFF | Stato | BC coinvolto | Dettaglio |
 |---|---|---|---|
-| `booking` non deve dipendere da `giftcard` o `payment` | ❌ Fallita | `booking` | 52 violazioni rilevate; 77 riferimenti a tipi di altri BC (ogni riga può contenere più FQN). |
-| `giftcard` non deve dipendere da `booking` o `payment` | ❌ Fallita | `giftcard` | 21 violazioni rilevate; 40 riferimenti a tipi di altri BC. |
+| `booking` non deve dipendere da `giftcard` | ✅ Risolta | `booking` | La dipendenza è stata eliminata con `GiftCardReference`; gli eventi di dominio di `booking` espongono il riferimento come primitiva. |
+| `booking` non deve dipendere da `payment` | ❌ Fallita | `booking` | 20 violazioni rilevate; dipendenze da eventi, command e porta di `payment`. |
+| `giftcard` non deve dipendere da `booking` | ❌ Fallita | `giftcard` | 10 violazioni rilevate; `giftcard` importa `booking.domain.events.BookingResultEvents` nelle policy e nei servizi. |
+| `giftcard` non deve dipendere da `payment` | ❌ Fallita | `giftcard` | 11 violazioni rilevate; dipendenze da eventi e command di `payment`. |
 | `payment` non deve dipendere da altri BC | ✅ OK | `payment` | Nessuna dipendenza verso `booking` o `giftcard`. |
 | `common` non deve dipendere dai BC | ✅ OK | `common` | Nessuna dipendenza verso i bounded context. |
 
@@ -98,11 +100,8 @@ giftcard.api.GiftCardApi
 
 > I conteggi sono calcolati sul report ArchUnit Java; TypeScript ha le stesse classi/tipi con i nomi camelCase.
 
-##### `booking` → `giftcard`
-
-| Tipo importato | Occorrenze |
-|---|---|
-| `giftcard.domain.giftcard.GiftCardId` | 43 |
+> **Nota didattica — dipendenza `booking → giftcard` risolta**  
+> L'import di `giftcard.domain.giftcard.GiftCardId` in `booking` è stato rimosso. `Booking` e i suoi command ora usano `booking.domain.primitive.GiftCardReference`; gli eventi di dominio di `booking` espongono il riferimento come primitiva (`UUID`/`String`), che `giftcard` traduce nel proprio `GiftCardId` solo al proprio confine.
 
 ##### `booking` → `payment`
 
@@ -139,7 +138,6 @@ giftcard.api.GiftCardApi
 
 ```text
 booking
-  → giftcard.domain.giftcard.GiftCardId        (43 occorrenze)
   → payment.domain.events.PaymentResultEvents  (12 occorrenze)
   → payment.application.commands.RequestPayment (4 occorrenze)
   → payment.application.commands.RefundTransaction (4 occorrenze)
@@ -156,14 +154,10 @@ giftcard
 
 #### File classi / moduli principali coinvolti
 
-- `booking.domain.policies.BookingPaymentRequestPolicy`
-- `booking.domain.policies.BookingRefundRequestPolicy`
-- `booking.domain.policies.PaymentPolicy`
-- `booking.application.commands.PlaceBooking`
-- `booking.application.commands.BookingConfirmationCommands`
-- `booking.domain.booking.Booking` (campo `giftCardId`)
-- `booking.infrastructure.SqliteBookingRepository`
-- `giftcard.domain.policies.ConfirmTopUpPolicy`
+- `booking.application.policies.BookingPaymentRequestPolicy`
+- `booking.application.policies.BookingRefundRequestPolicy`
+- `booking.application.policies.PaymentPolicy`
+- `giftcard.application.policies.ConfirmTopUpPolicy`
 - `giftcard.domain.policies.CreditGiftCardPolicy`
 - `giftcard.domain.policies.RefundGiftCardPolicy`
 - `giftcard.domain.policies.TopUpPaymentRequestPolicy`
@@ -198,7 +192,6 @@ giftcard
 │  booking ──────────────┐                                        │
 │  giftcard ─────────────┼──► payment (eventi, command, port)     │
 │                        │                                        │
-│  booking ──────────────┼──► giftcard (GiftCardId)               │
 │  giftcard ─────────────┘──► booking (eventi)                    │
 │                                                                 │
 │  payment  ───► nessuna dipendenza verso altri BC  ✅            │

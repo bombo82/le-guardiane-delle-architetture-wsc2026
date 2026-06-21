@@ -47,7 +47,7 @@ describe('BookingResultCrediting', () => {
       const bookingId = createBooking();
       const credit = new Money(14);
 
-      service.handleBookingResults(bookingConfirmed(bookingId, giftCard.id(), credit));
+      service.handleBookingResults(bookingConfirmed(bookingId, giftCard.id().value.value, credit));
 
       const updated = repository.findById(giftCard.id());
       expect(updated).not.toBeNull();
@@ -59,7 +59,7 @@ describe('BookingResultCrediting', () => {
       const bookingId = createBooking();
       const credit = new Money(9.99);
 
-      service.handleBookingResults(bookingRefused(bookingId, giftCard.id(), credit));
+      service.handleBookingResults(bookingRefused(bookingId, giftCard.id().value.value, credit));
 
       const after = repository.findById(giftCard.id());
       expect(after).not.toBeNull();
@@ -71,7 +71,7 @@ describe('BookingResultCrediting', () => {
       const bookingId = createBooking();
       const amount = new Money(5);
 
-      service.handleBookingResults(bookingRejected(bookingId, giftCard.id(), amount));
+      service.handleBookingResults(bookingRejected(bookingId, giftCard.id().value.value, amount));
 
       const persisted = repository.findById(giftCard.id());
       expect(persisted).not.toBeNull();
@@ -84,7 +84,7 @@ describe('BookingResultCrediting', () => {
       const amount = new Money(5);
 
       expect(() =>
-        service.handleBookingResults(bookingConfirmed(bookingId, nonExisting, amount))
+        service.handleBookingResults(bookingConfirmed(bookingId, nonExisting.value.value, amount))
       ).toThrow();
     });
   });

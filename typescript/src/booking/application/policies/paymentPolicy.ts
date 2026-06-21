@@ -34,7 +34,7 @@ export class PaymentPolicy implements Policy<PaymentResultEvent, BookingConfirma
           ? null
           : confirmBooking(
               this.bookingIdFrom(accepted.clientReference),
-              booking.giftCardId(),
+              booking.giftCardReference(),
               accepted.amount
             );
       })
@@ -44,7 +44,7 @@ export class PaymentPolicy implements Policy<PaymentResultEvent, BookingConfirma
           ? null
           : rejectBooking(
               this.bookingIdFrom(rejected.clientReference),
-              booking.giftCardId(),
+              booking.giftCardReference(),
               rejected.amount
             );
       })

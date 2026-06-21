@@ -2,6 +2,7 @@ package it.giannibombelli.wsc2026.testsupport;
 
 import it.giannibombelli.wsc2026.booking.domain.booking.Booking;
 import it.giannibombelli.wsc2026.booking.domain.booking.BookingId;
+import it.giannibombelli.wsc2026.booking.domain.primitive.GiftCardReference;
 import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.ClientReference;
 import it.giannibombelli.wsc2026.common.domain.primitive.Description;
@@ -20,8 +21,8 @@ import java.util.UUID;
 public class AggregateFactory {
     public static Booking createBooking() {
         BookingId bookingId = EntityId.generate(BookingId::new);
-        GiftCardId giftCardId = EntityId.generate(GiftCardId::new);
-        return Booking.place(bookingId, new Description("Test booking"), giftCardId);
+        GiftCardReference giftCardReference = new GiftCardReference(UUID.randomUUID());
+        return Booking.place(bookingId, new Description("Test booking"), giftCardReference);
     }
 
     public static GiftCard createGiftCard() {

@@ -1,5 +1,3 @@
-// Query service che espone i dati delle prenotazioni all'API.
-
 import { BookingId } from '../../domain/booking/bookingId.js';
 import type { BookingRepository } from '../../domain/ports/bookingRepository.js';
 import { type BookingDetails } from './bookingDetails.js';
@@ -19,7 +17,7 @@ export class BookingQueryService {
     return {
       id: booking.id().value.value,
       description: booking.description(),
-      giftCardId: booking.giftCardId().value.value,
+      giftCardId: booking.giftCardReference().value.value,
     };
   }
 }

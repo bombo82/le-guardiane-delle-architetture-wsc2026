@@ -1,11 +1,12 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { generateId } from '@/common/domain/identity/entityId.js';
 import { Description } from '@/common/domain/primitive/description.js';
+import { Uuid } from '@/common/domain/primitive/uuid.js';
 import { Booking } from '@/booking/domain/booking/booking.js';
 import { BookingId } from '@/booking/domain/booking/bookingId.js';
 import { BookingStatus } from '@/booking/domain/booking/bookingStatus.js';
 import { SqliteBookingRepository } from '@/booking/infrastructure/sqliteBookingRepository.js';
-import { GiftCardId } from '@/giftcard/domain/giftcard/giftCardId.js';
+import { GiftCardReference } from '@/booking/domain/primitive/giftCardReference.js';
 import { DatabaseSetup } from '../../testsupport/databaseSetup.js';
 
 describe('BookingRepository', () => {
@@ -19,8 +20,8 @@ describe('BookingRepository', () => {
   describe('save', () => {
     it('should persist new booking', () => {
       const bookingId = generateId((value) => new BookingId(value));
-      const giftCardId = generateId((value) => new GiftCardId(value));
-      const original = new Booking(bookingId, new Description('Test description'), giftCardId, BookingStatus.PLACED);
+      const giftCardReference = new GiftCardReference(Uuid.generate());
+      const original = new Booking(bookingId, new Description('Test description'), giftCardReference, BookingStatus.PLACED);
 
       repository.save(original);
       const reloaded = repository.findById(bookingId);
@@ -28,7 +29,7 @@ describe('BookingRepository', () => {
       expect(reloaded).not.toBeNull();
       expect(reloaded!.id()).toEqual(bookingId);
       expect(reloaded!.description()).toEqual(original.description());
-      expect(reloaded!.giftCardId()).toEqual(giftCardId);
+      expect(reloaded!.giftCardReference()).toEqual(giftCardReference);
       expect(reloaded!.status()).toEqual(BookingStatus.PLACED);
     });
   });

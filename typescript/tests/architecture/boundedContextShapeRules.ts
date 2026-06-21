@@ -26,3 +26,13 @@ export function policiesMustImplementPolicy(boundedContext: string) {
             `files in ${bcFolder(boundedContext, 'application/policies')} should implement Policy`
         );
 }
+
+export function useCasesMustImplementUseCase(boundedContext: string) {
+    return projectFiles()
+        .inFolder(bcFolder(boundedContext, 'application/usecases'))
+        .should()
+        .adhereTo(
+            (file) => /implements\s+UseCase\b/.test(file.content),
+            `files in ${bcFolder(boundedContext, 'application/usecases')} should implement UseCase`
+        );
+}

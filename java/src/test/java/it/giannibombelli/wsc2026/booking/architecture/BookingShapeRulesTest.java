@@ -7,6 +7,7 @@ import com.tngtech.archunit.lang.ArchRule;
 
 import static it.giannibombelli.wsc2026.architecture.BoundedContextShapeRules.commandsMustImplementCommand;
 import static it.giannibombelli.wsc2026.architecture.BoundedContextShapeRules.policiesMustImplementPolicy;
+import static it.giannibombelli.wsc2026.architecture.BoundedContextShapeRules.useCasesMustImplementUseCase;
 
 @AnalyzeClasses(packages = "it.giannibombelli.wsc2026.booking", importOptions = ImportOption.DoNotIncludeTests.class)
 class BookingShapeRulesTest {
@@ -18,4 +19,7 @@ class BookingShapeRulesTest {
 
     @ArchTest
     static final ArchRule policiesMustImplementPolicyRule = policiesMustImplementPolicy(BC);
+
+    @ArchTest
+    static final ArchRule useCasesMustImplementUseCaseRule = useCasesMustImplementUseCase(BC);
 }

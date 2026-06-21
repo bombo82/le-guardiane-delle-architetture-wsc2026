@@ -9,8 +9,8 @@
 
 | Implementazione | Test AFF totali | Falliti | Passati |
 |---|---|---|---|
-| Java | 46 | **0** | 46 |
-| TypeScript | 46 | **0** | 46 |
+| Java | 49 | **1** | 48 |
+| TypeScript | 49 | **1** | 48 |
 
 > I numeri includono le regole ArchUnit/TS su cross-BC dependencies, Published Language / ACL, hexagonal architecture, shape rules e domain/application purity per ciascun bounded context.
 
@@ -20,7 +20,7 @@ Tutte le relazioni cross-BC sono state disaccoppiate tramite **Published Languag
 - `payment → giftcard` e `payment → booking` (esiti pagamento);
 - `booking → payment` e `giftcard → payment` (richiesta pagamento / rimborso).
 
-Layer interni esagonali e shape rules sono **tutti a posto**.
+Layer interni esagonali **tutti a posto**; nelle shape rules resta **una violazione aperta** (sezione 2): tre classi di `payment/application/usecases` sono `EventSubscriber`, non `UseCase`.
 
 > ✅ Sono state aggiunte **nuove regole AFF** sulla definizione dei moduli (sezione 5). Tutte le violazioni evidenziate sono state risolte: il campo `watcher` è `final`/`readonly`, le sottoscrizioni interne sono nel costruttore, l'error handler JSON è in `Application` e i moduli non dipendono più direttamente dai tipi di configurazione del framework (`JavalinConfig` / `Express`).
 
@@ -81,10 +81,14 @@ giftcard.api.GiftCardApi
 |---|---|---|---|
 | `payment` | Tutte le policy concrete implementano `Policy` | ✅ OK | Le policy sono in `application/policies` e implementano `Policy`; `PaymentCharging` è stato ricollocato in `application/services`. |
 | `payment` | Tutti i command implementano `Command` | ✅ OK | — |
-| `booking` / `giftcard` | Shape rules analoghe | ✅ OK | — |
+| `payment` | Tutti i casi d'uso implementano `UseCase` | ❌ Fallita | `PaymentExpiring`, `TransactionAccepting` e `TransactionRejecting` implementano `EventSubscriber`, non `UseCase`. |
+| `booking` / `giftcard` | Shape rules analoghe | ✅ OK | Inclusa `useCasesMustImplementUseCase`, verde per entrambi i BC. |
 
 > **Nota didattica — `PaymentCharging` e lo scope del BC `payment`**  
 > `PaymentCharging` non implementava `Policy` perché non restituisce un `Command`: riceve `TransactionStarted` e restituisce `PaymentProviderResult`, interagendo direttamente con il provider esterno. È stato quindi ricollocato in `payment.application.services`, fuori dal package delle policy. Nel contesto del workshop il BC `payment` è parzialmente out-of-scope: gli adapter verso i payment provider reali (PayPal, Klarna, ecc.) non sono ancora integrati. Il ruolo di `PaymentCharging` andrà rivalutato quando tali adapter verranno creati.
+
+> **Nota didattica — `EventSubscriber` mascherati da use case**  
+> La regola `useCasesMustImplementUseCase` rileva che `PaymentExpiring`, `TransactionAccepting` e `TransactionRejecting` (in `payment/application/usecases`) implementano `EventSubscriber`, non `UseCase`: reagiscono a un evento coordinando altri casi d'uso, senza esserne uno. La violazione è **lasciata aperta** nel branch `solutions`: la collocazione degli orchestratori event-driven (use case, servizi applicativi o event handler dedicati) è uno dei punti di discussione del workshop.
 
 ---
 
@@ -327,6 +331,8 @@ In questo modo la facciata del modulo non dipende più direttamente da `JavalinC
 ├─────────────────────────────────────────────────────────────────┤
 │  Policy in application/policies implementano Policy     ✅      │
 │  PaymentCharging ricollocato in application/services    ✅      │
+│  PaymentExpiring & co. sono EventSubscriber, non UseCase ❌     │
+│  (violazione aperta, lasciata rossa di proposito)               │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -386,4 +392,4 @@ Tutte le relazioni cross-BC sono ora protette da PL + ACL. Un refactor interno a
 - Non rimangono violazioni architetturali cross-BC nel branch `solutions`.
 - Sono state introdotte regole AFF sulla **definizione dei moduli** (`ModuleDefinitionRulesTest` / `moduleDefinitionArchitecture.test.ts`). Tutte le violazioni evidenziate sono state risolte: campo `watcher` `final`/`readonly`, sottoscrizioni interne nel costruttore, error handler JSON in `Application` e dipendenza framework rimossa dalla facciata dei moduli tramite `webApi()` / `webApis()`.
 - Sono state aggiunte regole AFF esplicite per proteggere la Published Language di `payment`, in modo simmetrico a quanto già fatto per `booking`.
-- Il branch `feature/usecase-aff-rule` contiene invece l'evoluzione con la regola `useCasesMustImplementUseCase`, da approfondire in un momento successivo del workshop.
+- La regola `useCasesMustImplementUseCase` (sperimentata nel branch `feature/usecase-aff-rule`, ora fuso in `solutions`) è **rossa di proposito** per `payment`: documenta la violazione aperta descritta nella sezione 2.

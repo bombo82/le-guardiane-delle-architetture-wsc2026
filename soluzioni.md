@@ -268,3 +268,53 @@ Il composition root resta il punto unico e leggibile in cui i BC vengono collega
 
 - *Esporre direttamente `RequestPayment`/`RefundTransaction` come "command pubblici"*: sono DTO interni che evolvono col dominio; esporli ricreerebbe il coupling.
 - *Costruire i command interni nel composition root*: stessa violazione di incapsulamento descritta dal problema 8.
+
+### 8. Incapsulamento dei moduli: sottoscrizioni semantiche
+
+**Soluzione**
+
+I moduli espongono ora metodi di sottoscrizione semantici che nascondono handler e adapter, scambiando solo Published Language:
+
+```text
+booking.BookingModule
+  ├── handlePaymentResult(PaymentResultIntegrationEvent)
+  ├── onBookingPlaced(Consumer<PaymentRequestIntegrationCommand>)
+  └── onBookingRefused(Consumer<RefundRequestIntegrationCommand>)
+
+giftcard.GiftCardModule
+  ├── handlePaymentResult(PaymentResultIntegrationEvent)
+  ├── onTopUpRequested(Consumer<PaymentRequestIntegrationCommand>)
+  ├── onBookingCompleted(BookingCompletedIntegrationEvent)
+  ├── onBookingRefused(BookingRefusedIntegrationEvent)
+  └── onBookingRejected(BookingRejectedIntegrationEvent)
+```
+
+I dettagli interni (handler e adapter) restano privati e vengono cablati dal modulo stesso. Il wiring in `Application` diventa:
+
+```java
+paymentModule.onPaymentResult(bookingModule::handlePaymentResult);
+paymentModule.onPaymentResult(giftCardModule::handlePaymentResult);
+bookingModule.onBookingCompletedIntegration(giftCardModule::onBookingCompleted);
+bookingModule.onBookingRefusedIntegration(giftCardModule::onBookingRefused);
+bookingModule.onBookingRejectedIntegration(giftCardModule::onBookingRejected);
+
+giftCardModule.onTopUpRequested(paymentModule::requestPayment);
+bookingModule.onBookingPlaced(paymentModule::requestPayment);
+bookingModule.onBookingRefused(paymentModule::requestRefund);
+```
+
+Regole AFF aggiunte: `modulesMustNotExposeIntegrationHandlers` (nessun metodo pubblico di un modulo restituisce tipi da `..application.integration.handlers..`) e `compositionRootMustNotDependOnIntegrationAdapters` (`Application` non dipende dai package `integration` interni dei moduli downstream).
+
+> I flussi `BookingRefused` e `BookingRejected` possono restare distinti o essere unificati in un unico `onBookingResult(Consumer<BookingResultIntegrationEvent>)`, a seconda di quanto si vuole rendere generico il contratto pubblico di `giftcard`.
+
+**Motivazione**
+
+- Superficie pubblica minima: i moduli espongono operazioni semantiche, non oggetti implementativi.
+- Rinominare, scomporre o sostituire uno handler o un adapter interno non impatta `Application`.
+- L'ACL resta dentro il modulo downstream invece di essere invocato dal composition root.
+- Wiring esplicito preservato, coerente con i metodi `onTopUpRequested`/`onBookingPlaced`/`onBookingResult` già presenti.
+
+**Alternative considerate**
+
+- *Mantenere handler e adapter pubblici usati dal composition root*: è il problema stesso.
+- *Event bus globale condiviso tra i moduli*: accoppia i BC sul bus e sui tipi pubblicati e rende il wiring meno esplicito.

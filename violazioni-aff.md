@@ -9,8 +9,8 @@
 
 | Implementazione | Test AFF totali | Falliti | Passati |
 |---|---|---|---|
-| Java | 43 | **2** | 41 |
-| TypeScript | 44 | **2** | 42 |
+| Java | 43 | **0** | 43 |
+| TypeScript | 44 | **0** | 44 |
 
 > I numeri includono le regole ArchUnit/TS su cross-BC dependencies, Published Language / ACL, hexagonal architecture, shape rules e domain/application purity per ciascun bounded context.
 
@@ -22,7 +22,7 @@ Tutte le relazioni cross-BC sono state disaccoppiate tramite **Published Languag
 
 Layer interni esagonali e shape rules sono **tutti a posto**.
 
-> ⚠️ **È attiva una nuova violazione** relativa al **Composition Root**: `Application` accede direttamente agli handler di integrazione interni dei moduli. Vedi sezione 4.
+> ✅ La violazione relativa al **Composition Root** è stata risolta in entrambe le implementazioni: `Application` dipende ora solo dalla superficie pubblica dei moduli. Vedi sezione 4.
 
 ---
 
@@ -310,8 +310,7 @@ Tutte le relazioni cross-BC sono ora protette da PL + ACL. Un refactor interno a
 
 ## Note
 
-- In Java è attiva **una violazione** relativa all’incapsulamento del Composition Root; tutte le altre regole AFF sono passanti.
-- Anche in TypeScript è ora attiva la stessa **violazione** sul Composition Root, con le regole `compositionRootArchitecture` rosse.
+- In Java e in TypeScript la violazione sul Composition Root è **stata risolta**: le regole `CompositionRootArchitectureTest` / `compositionRootArchitecture.test.ts` sono ora verdi.
 - Non rimangono violazioni architetturali cross-BC nel branch `solutions`.
 - Sono state aggiunte regole AFF esplicite per proteggere la Published Language di `payment`, in modo simmetrico a quanto già fatto per `booking`.
 - Il branch `feature/usecase-aff-rule` contiene invece l'evoluzione con la regola `useCasesMustImplementUseCase`, da approfondire in un momento successivo del workshop.

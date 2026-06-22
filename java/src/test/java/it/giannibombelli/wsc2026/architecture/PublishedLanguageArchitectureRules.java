@@ -6,15 +6,9 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static java.lang.String.format;
 
 /**
- * Regole architetturali per proteggere il pattern Published Language + Anti-Corruption Layer.
+ * Regole a protezione del pattern Published Language + Anti-Corruption Layer.
  * <p>
- * Queste regole sono complementari alle regole cross-BC: mentre quelle vietano a un BC di dipendere
- * dai layer interni di un altro BC, queste garantiscono che:
- * <ul>
- *   <li>la Published Language di un BC non dipenda dai layer interni dello stesso BC;</li>
- *   <li>la Published Language di un BC non dipenda dal BC downstream;</li>
- *   <li>solo l'Anti-Corruption Layer del downstream possa consumare la Published Language upstream.</li>
- * </ul>
+ * Complementari alle regole cross-BC, che vietano a un BC di dipendere dai layer interni di un altro BC.
  */
 public final class PublishedLanguageArchitectureRules {
 
@@ -22,9 +16,7 @@ public final class PublishedLanguageArchitectureRules {
     }
 
     /**
-     * La Published Language di un BC non deve dipendere dai layer interni dello stesso BC.
-     * <p>
-     * Questo garantisce che il contratto pubblicato sia stabile e non venga "contaminato" da dettagli
+     * Garantisce che il contratto pubblicato sia stabile e non venga "contaminato" da dettagli
      * di dominio, applicazione, API o infrastruttura.
      */
     public static ArchRule publishedLanguageMustNotDependOnInternalLayers(String boundedContextPackage) {
@@ -40,8 +32,6 @@ public final class PublishedLanguageArchitectureRules {
     }
 
     /**
-     * La Published Language di un BC upstream non deve dipendere dal BC downstream.
-     * <p>
      * L'upstream pubblica un contratto senza conoscere chi lo consuma.
      */
     public static ArchRule publishedLanguageMustNotDependOnDownstream(String upstreamPackage, String downstreamPackage) {
@@ -52,9 +42,7 @@ public final class PublishedLanguageArchitectureRules {
     }
 
     /**
-     * Solo l'Anti-Corruption Layer di un BC downstream può consumare la Published Language di un upstream.
-     * <p>
-     * L'ACL risiede in {@code <downstream>.application.integration.<upstreamName>}.
+     * Convenzione: l'ACL risiede in {@code <downstream>.application.integration.<upstreamName>}.
      */
     public static ArchRule onlyAntiCorruptionLayerMayConsumePublishedLanguage(
         String downstreamPackage,
@@ -64,9 +52,10 @@ public final class PublishedLanguageArchitectureRules {
         return noClasses()
             .that().resideInAPackage(downstreamPackage + "..")
             .and().resideOutsideOfPackage(downstreamPackage + ".application.integration." + upstreamName + "..")
+            .and().haveSimpleNameNotEndingWith("Module")
             .should().dependOnClassesThat().resideInAPackage(upstreamPackage + ".integration..")
             .because(format(
-                "Only the Anti-Corruption Layer %s.application.integration.%s may consume the Published Language of %s",
+                "Only the Anti-Corruption Layer %s.application.integration.%s and the module facade may consume the Published Language of %s",
                 downstreamPackage, upstreamName, upstreamPackage
             ));
     }

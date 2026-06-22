@@ -3,22 +3,26 @@ package it.giannibombelli.wsc2026.giftcard;
 import it.giannibombelli.wsc2026.common.utils.Require;
 
 import io.javalin.config.JavalinConfig;
+import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent;
 import it.giannibombelli.wsc2026.common.application.events.EventBus;
 import it.giannibombelli.wsc2026.common.application.events.EventSubscriber;
 import it.giannibombelli.wsc2026.common.module.ApplicationModule;
 import it.giannibombelli.wsc2026.giftcard.api.GiftCardApi;
-import it.giannibombelli.wsc2026.giftcard.application.query.GiftCardQueryService;
 import it.giannibombelli.wsc2026.giftcard.application.integration.booking.adapter.BookingResult;
 import it.giannibombelli.wsc2026.giftcard.application.integration.booking.handlers.CreditFromBooking;
 import it.giannibombelli.wsc2026.giftcard.application.integration.booking.handlers.RefundFromBooking;
+import it.giannibombelli.wsc2026.giftcard.application.integration.payment.adapter.PaymentRequest;
 import it.giannibombelli.wsc2026.giftcard.application.integration.payment.adapter.PaymentResult;
 import it.giannibombelli.wsc2026.giftcard.application.integration.payment.handlers.ConfirmTopUpFromPayment;
+import it.giannibombelli.wsc2026.giftcard.application.query.GiftCardQueryService;
 import it.giannibombelli.wsc2026.giftcard.application.usecases.*;
 import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardEvent;
 import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardTopUpRequested;
 import it.giannibombelli.wsc2026.giftcard.domain.ports.GiftCardRepository;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.InMemoryGiftCardEventBus;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.SqliteGiftCardRepository;
+import it.giannibombelli.wsc2026.payment.integration.PaymentRequestIntegrationCommand;
+import it.giannibombelli.wsc2026.payment.integration.PaymentResultIntegrationEvent;
 
 import javax.sql.DataSource;
 import java.util.function.Consumer;
@@ -26,11 +30,11 @@ import java.util.function.Consumer;
 public final class GiftCardModule extends ApplicationModule {
     private final GiftCardRepository giftCardRepository;
     private final EventBus<GiftCardEvent> eventBus;
-    private final PaymentResult paymentResult;
-    private final ConfirmTopUpFromPayment confirmTopUpFromPayment;
     private final BookingResult bookingResult;
+    private final PaymentResult paymentResult;
     private final CreditFromBooking creditFromBooking;
     private final RefundFromBooking refundFromBooking;
+    private final ConfirmTopUpFromPayment confirmTopUpFromPayment;
 
     public GiftCardModule(DataSource dataSource) {
         Require.requireDependency(dataSource, "dataSource");
@@ -39,25 +43,36 @@ public final class GiftCardModule extends ApplicationModule {
         this.eventBus = new InMemoryGiftCardEventBus(Runnable::run);
         this.bookingResult = new BookingResult();
         this.paymentResult = new PaymentResult();
-        this.confirmTopUpFromPayment = createConfirmTopUpFromPayment();
         this.creditFromBooking = createCreditFromBooking();
         this.refundFromBooking = createRefundFromBooking();
+        this.confirmTopUpFromPayment = createConfirmTopUpFromPayment();
     }
 
-    public ConfirmTopUpFromPayment confirmTopUpFromPayment() {
-        return confirmTopUpFromPayment;
+    public void onPaymentResult(PaymentResultIntegrationEvent event) {
+        Require.requireArgument(event, "event");
+        confirmTopUpFromPayment.handle(event);
     }
 
-    public CreditFromBooking creditFromBooking() {
-        return creditFromBooking;
+    public void onTopUpRequested(Consumer<PaymentRequestIntegrationCommand> handler) {
+        var guarded = Require.requireDependency(handler, "handler");
+        eventBus.subscribe(GiftCardTopUpRequested.class,
+            (EventSubscriber<GiftCardTopUpRequested>) event ->
+                guarded.accept(PaymentRequest.fromTopUp(event)));
     }
 
-    public RefundFromBooking refundFromBooking() {
-        return refundFromBooking;
+    public void onBookingCompleted(BookingResultIntegrationEvent.BookingCompletedIntegrationEvent event) {
+        Require.requireArgument(event, "event");
+        creditFromBooking.handle(event);
     }
 
-    public void onTopUpRequested(Consumer<GiftCardTopUpRequested> handler) {
-        eventBus.subscribe(GiftCardTopUpRequested.class, (EventSubscriber<GiftCardTopUpRequested>) Require.requireDependency(handler, "handler")::accept);
+    public void onBookingRefused(BookingResultIntegrationEvent.BookingRefusedIntegrationEvent event) {
+        Require.requireArgument(event, "event");
+        creditFromBooking.handle(event);
+    }
+
+    public void onBookingRejected(BookingResultIntegrationEvent.BookingRejectedIntegrationEvent event) {
+        Require.requireArgument(event, "event");
+        refundFromBooking.handle(event);
     }
 
     public void configure(JavalinConfig config) {
@@ -69,11 +84,6 @@ public final class GiftCardModule extends ApplicationModule {
         api.configure(config);
     }
 
-    private ConfirmTopUpFromPayment createConfirmTopUpFromPayment() {
-        TopUpConfirming topUpConfirming = new TopUpConfirming(giftCardRepository);
-        return new ConfirmTopUpFromPayment(paymentResult, topUpConfirming);
-    }
-
     private CreditFromBooking createCreditFromBooking() {
         GiftCardCrediting useCase = new GiftCardCrediting(giftCardRepository);
         return new CreditFromBooking(bookingResult, useCase);
@@ -82,5 +92,10 @@ public final class GiftCardModule extends ApplicationModule {
     private RefundFromBooking createRefundFromBooking() {
         GiftCardRefunding useCase = new GiftCardRefunding(giftCardRepository);
         return new RefundFromBooking(bookingResult, useCase);
+    }
+
+    private ConfirmTopUpFromPayment createConfirmTopUpFromPayment() {
+        TopUpConfirming useCase = new TopUpConfirming(giftCardRepository);
+        return new ConfirmTopUpFromPayment(paymentResult, useCase);
     }
 }

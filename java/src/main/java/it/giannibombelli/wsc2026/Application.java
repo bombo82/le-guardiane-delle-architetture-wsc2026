@@ -5,9 +5,7 @@ import it.giannibombelli.wsc2026.common.utils.Require;
 
 import io.javalin.config.JavalinConfig;
 import it.giannibombelli.wsc2026.booking.BookingModule;
-import it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents;
 import it.giannibombelli.wsc2026.giftcard.GiftCardModule;
-import it.giannibombelli.wsc2026.giftcard.application.integration.payment.adapter.PaymentRequest;
 import it.giannibombelli.wsc2026.payment.PaymentModule;
 
 import javax.sql.DataSource;
@@ -38,33 +36,20 @@ public final class Application {
     }
 
     private void wirePaymentResults() {
-        paymentModule.onPaymentResult(bookingModule.handlePaymentResultFromPayment()::handle);
-        paymentModule.onPaymentResult(giftCardModule.confirmTopUpFromPayment()::handle);
+        paymentModule.onPaymentResult(bookingModule::onPaymentResult);
+        paymentModule.onPaymentResult(giftCardModule::onPaymentResult);
     }
 
     private void wireBookingResults() {
-        bookingModule.onBookingResultIntegration(giftCardModule.creditFromBooking()::handle);
-        bookingModule.onBookingRejectedIntegration(giftCardModule.refundFromBooking()::handle);
+        bookingModule.onBookingCompletedIntegration(giftCardModule::onBookingCompleted);
+        bookingModule.onBookingRefusedIntegration(giftCardModule::onBookingRefused);
+        bookingModule.onBookingRejectedIntegration(giftCardModule::onBookingRejected);
     }
 
     private void wireTopUpRequests() {
-        giftCardModule.onTopUpRequested(event ->
-            paymentModule.requestPayment(PaymentRequest.fromTopUp(event))
-        );
-
-        bookingModule.onBookingPlaced(event ->
-            paymentModule.requestPayment(
-                it.giannibombelli.wsc2026.booking.application.integration.payment.adapter.PaymentRequest.fromBookingPlaced(event)
-            )
-        );
-
-        bookingModule.onBookingResult(event -> {
-            if (event instanceof BookingResultEvents.BookingRefused refused) {
-                paymentModule.requestRefund(
-                    it.giannibombelli.wsc2026.booking.application.integration.payment.adapter.RefundRequest.fromBookingRefused(refused)
-                );
-            }
-        });
+        giftCardModule.onTopUpRequested(paymentModule::requestPayment);
+        bookingModule.onBookingPlaced(paymentModule::requestPayment);
+        bookingModule.onBookingRefused(paymentModule::requestRefund);
     }
 
     public void configure(JavalinConfig config) {

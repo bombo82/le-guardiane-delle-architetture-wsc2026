@@ -1,9 +1,10 @@
 package it.giannibombelli.wsc2026.booking;
 
-import it.giannibombelli.wsc2026.common.utils.Require;
-
 import io.javalin.config.JavalinConfig;
 import it.giannibombelli.wsc2026.booking.api.BookingApi;
+import it.giannibombelli.wsc2026.booking.application.integration.payment.adapter.PaymentRequest;
+import it.giannibombelli.wsc2026.booking.application.integration.payment.adapter.PaymentResult;
+import it.giannibombelli.wsc2026.booking.application.integration.payment.adapter.RefundRequest;
 import it.giannibombelli.wsc2026.booking.application.integration.payment.handlers.HandlePaymentResultFromPayment;
 import it.giannibombelli.wsc2026.booking.application.query.BookingQueryService;
 import it.giannibombelli.wsc2026.booking.application.usecases.BookingConfirming;
@@ -13,16 +14,16 @@ import it.giannibombelli.wsc2026.booking.domain.events.BookingEvent;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingPlaced;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents;
 import it.giannibombelli.wsc2026.booking.domain.ports.BookingRepository;
-import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent;
-import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent.BookingCompletedIntegrationEvent;
-import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent.BookingRejectedIntegrationEvent;
-import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent.BookingRefusedIntegrationEvent;
-import it.giannibombelli.wsc2026.booking.application.integration.payment.adapter.PaymentResult;
 import it.giannibombelli.wsc2026.booking.infrastructure.InMemoryBookingEventBus;
 import it.giannibombelli.wsc2026.booking.infrastructure.SqliteBookingRepository;
+import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent;
 import it.giannibombelli.wsc2026.common.application.events.EventBus;
 import it.giannibombelli.wsc2026.common.application.events.EventSubscriber;
 import it.giannibombelli.wsc2026.common.module.ApplicationModule;
+import it.giannibombelli.wsc2026.common.utils.Require;
+import it.giannibombelli.wsc2026.payment.integration.PaymentRequestIntegrationCommand;
+import it.giannibombelli.wsc2026.payment.integration.PaymentResultIntegrationEvent;
+import it.giannibombelli.wsc2026.payment.integration.RefundRequestIntegrationCommand;
 
 import javax.sql.DataSource;
 import java.util.function.Consumer;
@@ -41,33 +42,44 @@ public final class BookingModule extends ApplicationModule {
         this.handlePaymentResultFromPayment = createHandlePaymentResultFromPayment();
     }
 
-    public HandlePaymentResultFromPayment handlePaymentResultFromPayment() {
-        return handlePaymentResultFromPayment;
+    public void onPaymentResult(PaymentResultIntegrationEvent event) {
+        Require.requireArgument(event, "event");
+        handlePaymentResultFromPayment.handle(event);
     }
 
-    public void onBookingPlaced(Consumer<BookingPlaced> handler) {
-        eventBus.subscribe(BookingPlaced.class, (EventSubscriber<BookingPlaced>) Require.requireDependency(handler, "handler")::accept);
-    }
-
-    public void onBookingResult(Consumer<BookingResultEvents> handler) {
-        var subscriber = (EventSubscriber<BookingResultEvents>) Require.requireDependency(handler, "handler")::accept;
-        eventBus.subscribe(BookingResultEvents.BookingConfirmed.class, subscriber);
-        eventBus.subscribe(BookingResultEvents.BookingRefused.class, subscriber);
-        eventBus.subscribe(BookingResultEvents.BookingRejected.class, subscriber);
-    }
-
-    public void onBookingResultIntegration(Consumer<BookingResultIntegrationEvent> handler) {
+    public void onBookingPlaced(Consumer<PaymentRequestIntegrationCommand> handler) {
         var guarded = Require.requireDependency(handler, "handler");
-        eventBus.subscribe(BookingResultEvents.BookingConfirmed.class, (EventSubscriber<BookingResultEvents.BookingConfirmed>) event ->
-            guarded.accept(new BookingCompletedIntegrationEvent(event.giftCardReference(), event.amount())));
-        eventBus.subscribe(BookingResultEvents.BookingRefused.class, (EventSubscriber<BookingResultEvents.BookingRefused>) event ->
-            guarded.accept(new BookingRefusedIntegrationEvent(event.giftCardReference(), event.amount())));
+        eventBus.subscribe(BookingPlaced.class,
+            (EventSubscriber<BookingPlaced>) event ->
+                guarded.accept(PaymentRequest.fromBookingPlaced(event)));
     }
 
-    public void onBookingRejectedIntegration(Consumer<BookingRejectedIntegrationEvent> handler) {
+    public void onBookingRefused(Consumer<RefundRequestIntegrationCommand> handler) {
         var guarded = Require.requireDependency(handler, "handler");
-        eventBus.subscribe(BookingResultEvents.BookingRejected.class, (EventSubscriber<BookingResultEvents.BookingRejected>) event ->
-            guarded.accept(new BookingRejectedIntegrationEvent(event.giftCardReference(), event.amount())));
+        eventBus.subscribe(BookingResultEvents.BookingRefused.class,
+            (EventSubscriber<BookingResultEvents.BookingRefused>) event ->
+                guarded.accept(RefundRequest.fromBookingRefused(event)));
+    }
+
+    public void onBookingCompletedIntegration(Consumer<BookingResultIntegrationEvent.BookingCompletedIntegrationEvent> handler) {
+        var guarded = Require.requireDependency(handler, "handler");
+        eventBus.subscribe(BookingResultEvents.BookingConfirmed.class,
+            (EventSubscriber<BookingResultEvents.BookingConfirmed>) event ->
+                guarded.accept(new BookingResultIntegrationEvent.BookingCompletedIntegrationEvent(event.giftCardReference(), event.amount())));
+    }
+
+    public void onBookingRefusedIntegration(Consumer<BookingResultIntegrationEvent.BookingRefusedIntegrationEvent> handler) {
+        var guarded = Require.requireDependency(handler, "handler");
+        eventBus.subscribe(BookingResultEvents.BookingRefused.class,
+            (EventSubscriber<BookingResultEvents.BookingRefused>) event ->
+                guarded.accept(new BookingResultIntegrationEvent.BookingRefusedIntegrationEvent(event.giftCardReference(), event.amount())));
+    }
+
+    public void onBookingRejectedIntegration(Consumer<BookingResultIntegrationEvent.BookingRejectedIntegrationEvent> handler) {
+        var guarded = Require.requireDependency(handler, "handler");
+        eventBus.subscribe(BookingResultEvents.BookingRejected.class,
+            (EventSubscriber<BookingResultEvents.BookingRejected>) event ->
+                guarded.accept(new BookingResultIntegrationEvent.BookingRejectedIntegrationEvent(event.giftCardReference(), event.amount())));
     }
 
     public void configure(JavalinConfig config) {

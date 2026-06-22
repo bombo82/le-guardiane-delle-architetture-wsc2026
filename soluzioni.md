@@ -480,8 +480,6 @@ Per proteggere la nuova PL di `payment`, sono state aggiunte regole AFF specular
 
 ## 8. Composition root e incapsulamento dei moduli
 
-> ⚠️ **Stato attuale**: questa soluzione è **descritta ma non ancora implementata** nel branch `solutions`. Il codice sorgente attuale espone ancora gli handler concreti e `Application` dipende ancora dagli adapter interni di `booking` e `giftcard`. Le regole AFF `CompositionRootArchitectureTest` / `compositionRootArchitecture.test.ts` sono attualmente **rosse** per evidenziare il problema.
-
 ### Problema
 
 Dopo il disaccoppiamento cross-BC, `Application` continuava a dipendere dagli **internals** dei moduli in due modi.
@@ -602,9 +600,7 @@ La seconda verifica che `Application` non dipenda da classi in `..booking.applic
 
 ## 9. Cosa non è stato ancora risolto
 
-Nel branch `solutions` rimane ancora **una violazione architetturale attiva**: l'incapsulamento del Composition Root descritto nella sezione 8 non è ancora stato applicato. `Application` dipende ancora dagli handler di integrazione interni di `booking` e `giftcard`, e chiama direttamente gli adapter interni dei due BC per tradurre eventi di dominio in command verso `payment`.
-
-Tutte le altre relazioni cross-BC sono state disaccoppiate tramite Published Language e Anti-Corruption Layer.
+Nel branch `solutions` non rimangono violazioni architetturali attive. Tutte le relazioni cross-BC sono state disaccoppiate tramite Published Language e Anti-Corruption Layer, e il Composition Root dipende solo dalla superficie pubblica dei moduli.
 
 ---
 

@@ -13,15 +13,20 @@ import { GiftCardIssuing } from './application/usecases/giftCardIssuing.js';
 import { GiftCardRefunding } from './application/usecases/giftCardRefunding.js';
 import { TopUpConfirming } from './application/usecases/topUpConfirming.js';
 import { TopUpRequesting } from './application/usecases/topUpRequesting.js';
-import { GiftCardTopUpRequested } from './domain/events/giftCardTopUpRequested.js';
+import { paymentRequestFromTopUp } from './application/integration/payment/adapter/paymentRequest.js';
 import { BookingResult } from './application/integration/booking/adapter/bookingResult.js';
 import { PaymentResult } from './application/integration/payment/adapter/paymentResult.js';
 import { InMemoryGiftCardEventBus } from './infrastructure/inMemoryGiftCardEventBus.js';
 import type { GiftCardRepository } from './domain/ports/giftCardRepository.js';
 import { SqliteGiftCardRepository } from './infrastructure/sqliteGiftCardRepository.js';
+import type { PaymentResultIntegrationEvent } from '@/payment/integration/paymentResultIntegrationEvent.js';
+import type { PaymentRequestIntegrationCommand } from '@/payment/integration/paymentRequestIntegrationCommand.js';
+import type {
+  BookingCompletedIntegrationEvent,
+  BookingRefusedIntegrationEvent,
+  BookingRejectedIntegrationEvent,
+} from '@/booking/integration/giftcard/bookingResultIntegrationEvent.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
-
-export type TopUpRequestedHandler = (event: GiftCardTopUpRequested) => void;
 
 export class GiftCardModule extends ApplicationModule {
   private readonly _giftCardRepository: GiftCardRepository;
@@ -46,26 +51,30 @@ export class GiftCardModule extends ApplicationModule {
     this._confirmTopUpFromPayment = this.createConfirmTopUpFromPayment();
   }
 
-  confirmTopUpFromPayment(): ConfirmTopUpFromPayment {
-    return this._confirmTopUpFromPayment;
+  onPaymentResult(event: PaymentResultIntegrationEvent): void {
+    this._confirmTopUpFromPayment.handle(event);
   }
 
-  creditFromBooking(): CreditFromBooking {
-    return this._creditFromBooking;
-  }
-
-  refundFromBooking(): RefundFromBooking {
-    return this._refundFromBooking;
-  }
-
-  onTopUpRequested(handler: TopUpRequestedHandler): void {
+  onTopUpRequested(handler: (command: PaymentRequestIntegrationCommand) => void): void {
     this._eventBus.subscribe('GiftCardTopUpRequested', {
       on: (event) => {
         if (event.kind === 'GiftCardTopUpRequested') {
-          handler(event);
+          handler(paymentRequestFromTopUp(event));
         }
       },
     });
+  }
+
+  onBookingCompleted(event: BookingCompletedIntegrationEvent): void {
+    this._creditFromBooking.handle(event);
+  }
+
+  onBookingRefused(event: BookingRefusedIntegrationEvent): void {
+    this._creditFromBooking.handle(event);
+  }
+
+  onBookingRejected(event: BookingRejectedIntegrationEvent): void {
+    this._refundFromBooking.handle(event);
   }
 
   configure(app: Express): void {

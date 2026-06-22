@@ -4,11 +4,7 @@
 import type { Express } from 'express';
 import Database from 'better-sqlite3';
 import { BookingModule } from './booking/module.js';
-import { BookingResultEvent } from './booking/domain/events/bookingResultEvents.js';
-import { paymentRequestFromBookingPlaced } from './booking/application/integration/payment/adapter/paymentRequest.js';
-import { refundRequestFromBookingRefused } from './booking/application/integration/payment/adapter/refundRequest.js';
 import { GiftCardModule } from './giftcard/module.js';
-import { paymentRequestFromTopUp } from './giftcard/application/integration/payment/adapter/paymentRequest.js';
 import { PaymentModule } from './payment/module.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
 
@@ -38,29 +34,20 @@ export class Application {
   }
 
   private wirePaymentResults(): void {
-    this._paymentModule.onPaymentResult((event) => this._bookingModule.handlePaymentResultFromPayment().handle(event));
-    this._paymentModule.onPaymentResult((event) => this._giftCardModule.confirmTopUpFromPayment().handle(event));
+    this._paymentModule.onPaymentResult((event) => this._bookingModule.onPaymentResult(event));
+    this._paymentModule.onPaymentResult((event) => this._giftCardModule.onPaymentResult(event));
   }
 
   private wireBookingResults(): void {
-    this._bookingModule.onBookingResultIntegration((event) => this._giftCardModule.creditFromBooking().handle(event));
-    this._bookingModule.onBookingRejectedIntegration((event) => this._giftCardModule.refundFromBooking().handle(event));
+    this._bookingModule.onBookingCompletedIntegration((event) => this._giftCardModule.onBookingCompleted(event));
+    this._bookingModule.onBookingRefusedIntegration((event) => this._giftCardModule.onBookingRefused(event));
+    this._bookingModule.onBookingRejectedIntegration((event) => this._giftCardModule.onBookingRejected(event));
   }
 
   private wireTopUpRequests(): void {
-    this._giftCardModule.onTopUpRequested((event) =>
-      this._paymentModule.requestPayment(paymentRequestFromTopUp(event))
-    );
-
-    this._bookingModule.onBookingPlaced((event) =>
-      this._paymentModule.requestPayment(paymentRequestFromBookingPlaced(event))
-    );
-
-    this._bookingModule.onBookingResult((event: BookingResultEvent) => {
-      if (event.kind === 'BookingRefused') {
-        this._paymentModule.requestRefund(refundRequestFromBookingRefused(event));
-      }
-    });
+    this._giftCardModule.onTopUpRequested((command) => this._paymentModule.requestPayment(command));
+    this._bookingModule.onBookingPlaced((command) => this._paymentModule.requestPayment(command));
+    this._bookingModule.onBookingRefused((command) => this._paymentModule.requestRefund(command));
   }
 
   configure(app: Express): void {

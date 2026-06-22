@@ -64,9 +64,10 @@ public final class PublishedLanguageArchitectureRules {
         return noClasses()
             .that().resideInAPackage(downstreamPackage + "..")
             .and().resideOutsideOfPackage(downstreamPackage + ".application.integration." + upstreamName + "..")
+            .and().haveSimpleNameNotEndingWith("Module")
             .should().dependOnClassesThat().resideInAPackage(upstreamPackage + ".integration..")
             .because(format(
-                "Only the Anti-Corruption Layer %s.application.integration.%s may consume the Published Language of %s",
+                "Only the Anti-Corruption Layer %s.application.integration.%s and the module facade may consume the Published Language of %s",
                 downstreamPackage, upstreamName, upstreamPackage
             ));
     }

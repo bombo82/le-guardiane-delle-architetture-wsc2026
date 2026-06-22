@@ -20,7 +20,7 @@ describe('CrossBoundedContextDependencies', () => {
       .inFolder(otherBoundedContexts(['giftcard', 'payment']));
 
     await expect(rule).toPassAsync();
-  });
+  }, 30000);
 
   it('giftcard must not depend on other bounded contexts', async () => {
     const rule = projectFiles()

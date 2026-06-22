@@ -16,7 +16,6 @@ import it.giannibombelli.wsc2026.giftcard.application.integration.payment.handle
 import it.giannibombelli.wsc2026.giftcard.application.usecases.*;
 import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardEvent;
 import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardTopUpRequested;
-import it.giannibombelli.wsc2026.giftcard.application.policies.TopUpPaymentRequestPolicy;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.InMemoryGiftCardEventBus;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.SqliteGiftCardRepository;
 
@@ -31,7 +30,6 @@ public final class GiftCardModule extends ApplicationModule {
     private final BookingResult bookingResult;
     private final CreditFromBooking creditFromBooking;
     private final RefundFromBooking refundFromBooking;
-    private final TopUpPaymentRequestPolicy topUpPaymentRequestPolicy;
 
     public GiftCardModule(DataSource dataSource) {
         super();
@@ -44,7 +42,6 @@ public final class GiftCardModule extends ApplicationModule {
         this.confirmTopUpFromPayment = createConfirmTopUpFromPayment();
         this.creditFromBooking = createCreditFromBooking();
         this.refundFromBooking = createRefundFromBooking();
-        this.topUpPaymentRequestPolicy = new TopUpPaymentRequestPolicy();
     }
 
     public ConfirmTopUpFromPayment confirmTopUpFromPayment() {
@@ -57,10 +54,6 @@ public final class GiftCardModule extends ApplicationModule {
 
     public RefundFromBooking refundFromBooking() {
         return refundFromBooking;
-    }
-
-    public TopUpPaymentRequestPolicy topUpPaymentRequestPolicy() {
-        return topUpPaymentRequestPolicy;
     }
 
     public void onTopUpRequested(Consumer<GiftCardTopUpRequested> handler) {

@@ -14,7 +14,6 @@ import { GiftCardRefunding } from './application/usecases/giftCardRefunding.js';
 import { TopUpConfirming } from './application/usecases/topUpConfirming.js';
 import { TopUpRequesting } from './application/usecases/topUpRequesting.js';
 import { GiftCardTopUpRequested } from './domain/events/giftCardTopUpRequested.js';
-import { TopUpPaymentRequestPolicy } from './application/policies/topUpPaymentRequestPolicy.js';
 import { BookingResult } from './application/integration/booking/adapter/bookingResult.js';
 import { PaymentResult } from './application/integration/payment/adapter/paymentResult.js';
 import { InMemoryGiftCardEventBus } from './infrastructure/inMemoryGiftCardEventBus.js';
@@ -32,7 +31,6 @@ export class GiftCardModule extends ApplicationModule {
   private readonly _creditFromBooking: CreditFromBooking;
   private readonly _refundFromBooking: RefundFromBooking;
   private readonly _confirmTopUpFromPayment: ConfirmTopUpFromPayment;
-  private readonly _topUpPaymentRequestPolicy: TopUpPaymentRequestPolicy;
 
   constructor(database: Database.Database) {
     super();
@@ -47,7 +45,6 @@ export class GiftCardModule extends ApplicationModule {
     this._creditFromBooking = this.createCreditFromBooking();
     this._refundFromBooking = this.createRefundFromBooking();
     this._confirmTopUpFromPayment = this.createConfirmTopUpFromPayment();
-    this._topUpPaymentRequestPolicy = new TopUpPaymentRequestPolicy();
   }
 
   confirmTopUpFromPayment(): ConfirmTopUpFromPayment {
@@ -60,10 +57,6 @@ export class GiftCardModule extends ApplicationModule {
 
   refundFromBooking(): RefundFromBooking {
     return this._refundFromBooking;
-  }
-
-  topUpPaymentRequestPolicy(): TopUpPaymentRequestPolicy {
-    return this._topUpPaymentRequestPolicy;
   }
 
   onTopUpRequested(handler: TopUpRequestedHandler): void {

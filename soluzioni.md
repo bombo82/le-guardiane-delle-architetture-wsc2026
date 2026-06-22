@@ -246,3 +246,25 @@ Il composition root resta il punto unico e leggibile in cui i BC vengono collega
 
 - *Lasciare il wiring verboso*: rumore nel punto architetturalmente più importante.
 - *Adottare un DI container*: contro la scelta di minimalità ed esplicità del progetto.
+
+### 7. Decoupling del flusso command `booking` / `giftcard` → `payment`
+
+**Soluzione**
+
+1. Published Language di `payment` in `payment.integration`: `PaymentRequestIntegrationCommand` e `RefundRequestIntegrationCommand`, con campi solo di tipi stabili (`clientReference` come stringa UUID, `amount` come `Money`).
+2. ACL in `booking.application.integration.payment`: `adapter.PaymentRequest` traduce `BookingPlaced`, `adapter.RefundRequest` traduce `BookingRefused`.
+3. ACL in `giftcard.application.integration.payment`: `adapter.PaymentRequest` traduce `GiftCardTopUpRequested`.
+4. Gateway in `PaymentModule`: `requestPayment(...)` e `requestRefund(...)` traducono i command di integrazione nei command interni `RequestPayment`/`RefundTransaction` e li eseguono.
+5. Rimozione delle policy cross-BC `BookingPaymentRequestPolicy`, `BookingRefundRequestPolicy`, `TopUpPaymentRequestPolicy`.
+6. Regole AFF simmetriche a protezione della nuova PL (`paymentPublishedLanguageMustBeIndependent`, `paymentPublishedLanguageMustNotDependOnBooking/GiftCard`, `onlyBooking/GiftCardAclMayConsumePaymentPublishedLanguage`).
+
+**Motivazione**
+
+- Simmetria con il flusso eventi: `payment` espone una PL sia per gli esiti sia per le richieste, con ACL dedicati nei downstream per entrambe le direzioni.
+- I BC downstream non conoscono più `RequestPayment`, `RefundTransaction` o `PaymentId`.
+- Il gateway di `PaymentModule` è l'unico punto di ingresso verso `payment` per i command cross-BC.
+
+**Alternative considerate**
+
+- *Esporre direttamente `RequestPayment`/`RefundTransaction` come "command pubblici"*: sono DTO interni che evolvono col dominio; esporli ricreerebbe il coupling.
+- *Costruire i command interni nel composition root*: stessa violazione di incapsulamento descritta dal problema 8.

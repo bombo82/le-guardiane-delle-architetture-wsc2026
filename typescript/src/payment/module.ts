@@ -19,6 +19,14 @@ import {
   paymentRejectedIntegrationEvent,
   type PaymentResultIntegrationEvent,
 } from './integration/paymentResultIntegrationEvent.js';
+import type { PaymentRequestIntegrationCommand } from './integration/paymentRequestIntegrationCommand.js';
+import type { RefundRequestIntegrationCommand } from './integration/refundRequestIntegrationCommand.js';
+import { requestPayment } from './application/commands/requestPayment.js';
+import { refundTransaction } from './application/commands/refundTransaction.js';
+import { ClientReference } from '@/common/domain/primitive/clientReference.js';
+import { Timestamp } from '@/common/domain/primitive/timestamp.js';
+import { PaymentId } from './domain/payment/paymentId.js';
+import { Uuid } from '@/common/domain/primitive/uuid.js';
 import { PaymentCompletion } from './application/policies/paymentCompletion.js';
 import { PaymentExpiration } from './application/policies/paymentExpiration.js';
 import { PaymentRejection } from './application/policies/paymentRejection.js';
@@ -32,6 +40,7 @@ import { SqlitePaymentRepository } from './infrastructure/sqlitePaymentRepositor
 import { GiftCard } from './infrastructure/providers/giftCard.js';
 import { Klarna } from './infrastructure/providers/klarna.js';
 import { PayPal } from './infrastructure/providers/payPal.js';
+import { requireArgument } from '@/common/utils/requireArgument.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
 
 type PaymentResultIntegrationHandler = (event: PaymentResultIntegrationEvent) => void;
@@ -111,6 +120,28 @@ export class PaymentModule extends ApplicationModule {
   onPaymentResult(handler: PaymentResultIntegrationHandler): void {
     requireDependency(handler, 'handler');
     this._paymentResultIntegrationHandlers.push(handler);
+  }
+
+  requestPayment(command: PaymentRequestIntegrationCommand): void {
+    requireArgument(command, 'command');
+    const internalCommand = requestPayment(
+      new PaymentId(Uuid.generate()),
+      new ClientReference(Uuid.fromString(command.clientReference)),
+      command.amount,
+      Timestamp.now()
+    );
+    this._paymentRequesting.invoke(internalCommand);
+  }
+
+  requestRefund(command: RefundRequestIntegrationCommand): void {
+    requireArgument(command, 'command');
+    const clientReference = new ClientReference(Uuid.fromString(command.clientReference));
+    const payment = this._paymentRepository.findByClientReference(clientReference);
+    if (!payment) {
+      throw new Error(`No payment found for clientReference: ${command.clientReference}`);
+    }
+    const internalCommand = refundTransaction(payment.id(), command.amount);
+    this._refundRequesting.invoke(internalCommand);
   }
 
   configure(app: Express): void {

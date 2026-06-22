@@ -6,10 +6,6 @@ import it.giannibombelli.wsc2026.common.application.Policy;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 
-/**
- * Regole di shape condivise per la verifica dei costrutti principali
- * (Command e Policy) all'interno di un singolo Bounded Context.
- */
 public final class BoundedContextShapeRules {
 
     private BoundedContextShapeRules() {
@@ -28,6 +24,7 @@ public final class BoundedContextShapeRules {
             .that().resideInAPackage(boundedContextPackage + ".application.policies..")
             .and().areNotInterfaces()
             .should().implement(Policy.class)
+            .allowEmptyShould(true)
             .because("every concrete policy in " + boundedContextPackage + " must implement Policy");
     }
 }

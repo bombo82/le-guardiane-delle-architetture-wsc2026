@@ -226,3 +226,23 @@ giftcard
 
 - *Una PL distinta per ogni consumatore (customer-supplier)*: più contratti da mantenere con lo stesso contenuto.
 - *Sottoscrivere gli eventi di dominio filtrandoli nei moduli downstream*: reintrodurrebbe la conoscenza del contratto interno di `payment`.
+
+### 6.1 Semplificazione del wiring applicativo
+
+Problema emerso durante il refactoring (non presente nella codebase iniziale): dopo l'introduzione di PL e ACL, il composition root era diventato verboso — moduli costruiti con liste di handler e registrazioni ripetute con tre chiamate separate (`onPaymentAccepted`/`onPaymentRejected`/`onPaymentExpired`).
+
+**Soluzione**
+
+- Unificate le tre liste di handler di integrazione di `PaymentModule` in una sola, registrata con `onPaymentResult(handler)`.
+- Spostata la registrazione degli handler dai costruttori a metodi post-costruzione (`onBookingPlaced`, `onBookingResult`, `onTopUpRequested`, ...): i costruttori dei moduli restano minimi.
+- Unificate le liste `bookingConfirmedHandlers`/`bookingRejectedHandlers` in `bookingResultHandlers`.
+- Incapsulato il wiring in metodi privati di `Application`: `wireTopUpRequests()`, `wireBookingResults()`, `wirePaymentResults()`.
+
+**Motivazione**
+
+Il composition root resta il punto unico e leggibile in cui i BC vengono collegati, senza il rumore delle liste vuote e delle registrazioni ripetute, e senza introdurre framework di DI: le dipendenze continuano a essere cablate esplicitamente a mano.
+
+**Alternative considerate**
+
+- *Lasciare il wiring verboso*: rumore nel punto architetturalmente più importante.
+- *Adottare un DI container*: contro la scelta di minimalità ed esplicità del progetto.

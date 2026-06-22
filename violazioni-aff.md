@@ -10,11 +10,9 @@
 | Implementazione | Test AFF totali | Falliti | Passati |
 |---|---|---|---|
 | Java | 36 | **2** | 34 |
-| TypeScript | 7 | **2** | 5 |
+| TypeScript | 37 | **2** | 35 |
 
 > I numeri includono le regole ArchUnit/TS su cross-BC dependencies, Published Language / ACL, hexagonal architecture, shape rules e domain/application purity per ciascun bounded context.
-
-> I test AFF totali includono: cross-BC dependencies, Published Language / ACL, hexagonal architecture, shape rules e domain/application purity per ciascun bounded context.
 
 Le violazioni rimanenti si concentrano in **un'unica area**:
 

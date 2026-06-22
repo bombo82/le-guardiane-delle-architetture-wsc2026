@@ -8,7 +8,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,7 +21,7 @@ class GiftCardIssuanceApiTest {
     @BeforeAll
     void setUp() {
         final DataSource dataSource = DatabaseSetup.initializeFileDb("giftcard", getClass().getSimpleName());
-        GiftCardModule module = new GiftCardModule(dataSource, List.of());
+        GiftCardModule module = new GiftCardModule(dataSource);
 
         javalin.start(module::configure);
     }

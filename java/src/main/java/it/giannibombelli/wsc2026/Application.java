@@ -5,24 +5,17 @@ import it.giannibombelli.wsc2026.common.utils.Require;
 
 import io.javalin.config.JavalinConfig;
 import it.giannibombelli.wsc2026.booking.BookingModule;
-import it.giannibombelli.wsc2026.booking.domain.events.BookingPlaced;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents;
-import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent;
-import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent.BookingRejectedIntegrationEvent;
 import it.giannibombelli.wsc2026.booking.application.policies.BookingPaymentRequestPolicy;
 import it.giannibombelli.wsc2026.booking.application.policies.BookingRefundRequestPolicy;
 import it.giannibombelli.wsc2026.common.module.ApplicationModule;
 import it.giannibombelli.wsc2026.giftcard.GiftCardModule;
-import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardTopUpRequested;
 import it.giannibombelli.wsc2026.payment.PaymentModule;
 import it.giannibombelli.wsc2026.payment.application.commands.RefundTransaction;
 import it.giannibombelli.wsc2026.payment.application.commands.RequestPayment;
 
 import javax.sql.DataSource;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 /**
  * Composition root condiviso tra {@link Main} e i test E2E.
@@ -39,57 +32,44 @@ public final class Application extends ApplicationModule {
         Require.requireDependency(giftCardDataSource, "giftCardDataSource");
         Require.requireDependency(paymentDataSource, "paymentDataSource");
 
-        // PaymentModule first: its use cases are needed by the wiring of the other modules.
-        // Handlers are added after construction to break the cycle between payment results and refunds.
-        this.paymentModule = new PaymentModule(paymentDataSource, List.of(), List.of(), List.of());
+        this.paymentModule = new PaymentModule(paymentDataSource);
+        this.giftCardModule = new GiftCardModule(giftCardDataSource);
+        this.bookingModule = new BookingModule(bookingDataSource);
 
-        // AtomicReference resolves the GiftCardModule initialization cycle.
-        AtomicReference<GiftCardModule> giftCardModuleRef = new AtomicReference<>();
-        Consumer<GiftCardTopUpRequested> topUpToPaymentHandler = event -> {
-            RequestPayment cmd = giftCardModuleRef.get().topUpPaymentRequestPolicy().evaluate(event);
+        wireTopUpRequests();
+        wireBookingResults();
+        wirePaymentResults();
+    }
+
+    private void wirePaymentResults() {
+        paymentModule.onPaymentResult(bookingModule.handlePaymentResultFromPayment()::handle);
+        paymentModule.onPaymentResult(giftCardModule.confirmTopUpFromPayment()::handle);
+    }
+
+    private void wireBookingResults() {
+        bookingModule.onBookingResultIntegration(giftCardModule.creditFromBooking()::handle);
+        bookingModule.onBookingRejectedIntegration(giftCardModule.refundFromBooking()::handle);
+    }
+
+    private void wireTopUpRequests() {
+        giftCardModule.onTopUpRequested(event -> {
+            RequestPayment cmd = giftCardModule.topUpPaymentRequestPolicy().evaluate(event);
             paymentModule.paymentRequesting().invoke(cmd);
-        };
+        });
 
-        this.giftCardModule = new GiftCardModule(giftCardDataSource, List.of(topUpToPaymentHandler));
-        giftCardModuleRef.set(this.giftCardModule);
-
-        BookingRefundRequestPolicy bookingRefundRequestPolicy = new BookingRefundRequestPolicy(paymentModule.paymentRepository());
         BookingPaymentRequestPolicy bookingPaymentRequestPolicy = new BookingPaymentRequestPolicy();
-
-        Consumer<BookingPlaced> bookingPlacedHandler = event -> {
+        bookingModule.onBookingPlaced(event -> {
             RequestPayment cmd = bookingPaymentRequestPolicy.evaluate(event);
             paymentModule.paymentRequesting().invoke(cmd);
-        };
+        });
 
-        Consumer<BookingResultEvents> bookingConfirmedHandler = event -> {
+        BookingRefundRequestPolicy bookingRefundRequestPolicy = new BookingRefundRequestPolicy(paymentModule.paymentRepository());
+        bookingModule.onBookingResult(event -> {
             if (event instanceof BookingResultEvents.BookingRefused refused) {
                 RefundTransaction cmd = bookingRefundRequestPolicy.evaluate(refused);
                 paymentModule.refundRequesting().invoke(cmd);
             }
-        };
-
-        Consumer<BookingResultIntegrationEvent> bookingResultIntegrationHandler =
-            giftCardModule.creditFromBooking()::handle;
-
-        Consumer<BookingRejectedIntegrationEvent> bookingRejectedIntegrationHandler =
-            giftCardModule.refundFromBooking()::handle;
-
-        this.bookingModule = new BookingModule(
-            bookingDataSource,
-            List.of(bookingPlacedHandler),
-            List.of(bookingConfirmedHandler),
-            List.of(),
-            List.of(bookingResultIntegrationHandler),
-            List.of(bookingRejectedIntegrationHandler)
-        );
-
-        paymentModule.addAcceptedIntegrationHandler(bookingModule.handlePaymentResultFromPayment()::handle);
-        paymentModule.addRejectedIntegrationHandler(bookingModule.handlePaymentResultFromPayment()::handle);
-        paymentModule.addExpiredIntegrationHandler(bookingModule.handlePaymentResultFromPayment()::handle);
-
-        paymentModule.addAcceptedIntegrationHandler(giftCardModule.confirmTopUpFromPayment()::handle);
-        paymentModule.addRejectedIntegrationHandler(giftCardModule.confirmTopUpFromPayment()::handle);
-        paymentModule.addExpiredIntegrationHandler(giftCardModule.confirmTopUpFromPayment()::handle);
+        });
     }
 
     @Override

@@ -24,6 +24,7 @@ import { requireDependency } from '@/common/utils/requireDependency.js';
 export type TopUpRequestedHandler = (event: GiftCardTopUpRequested) => void;
 
 export class GiftCardModule extends ApplicationModule {
+  private readonly _database: Database.Database;
   private readonly _giftCardRepository: SqliteGiftCardRepository;
   private readonly _eventBus: InMemoryGiftCardEventBus;
   private readonly _bookingResult: BookingResult;
@@ -32,27 +33,22 @@ export class GiftCardModule extends ApplicationModule {
   private readonly _refundFromBooking: RefundFromBooking;
   private readonly _confirmTopUpFromPayment: ConfirmTopUpFromPayment;
   private readonly _topUpPaymentRequestPolicy: TopUpPaymentRequestPolicy;
-  private readonly _topUpRequestedHandlers: TopUpRequestedHandler[];
 
-  constructor(database: Database.Database, topUpRequestedHandlers: TopUpRequestedHandler[] = []) {
+  constructor(database: Database.Database) {
     super();
 
     requireDependency(database, "database");
 
-    this._topUpRequestedHandlers = [...topUpRequestedHandlers];
     this._database = database;
     this._giftCardRepository = new SqliteGiftCardRepository(this._database);
     this._eventBus = new InMemoryGiftCardEventBus((task) => task());
     this._bookingResult = new BookingResult();
     this._paymentResult = new PaymentResult();
-    this.registerCrossBcHandlers();
     this._creditFromBooking = this.createCreditFromBooking();
     this._refundFromBooking = this.createRefundFromBooking();
     this._confirmTopUpFromPayment = this.createConfirmTopUpFromPayment();
     this._topUpPaymentRequestPolicy = new TopUpPaymentRequestPolicy();
   }
-
-  private readonly _database: Database.Database;
 
   confirmTopUpFromPayment(): ConfirmTopUpFromPayment {
     return this._confirmTopUpFromPayment;
@@ -70,6 +66,16 @@ export class GiftCardModule extends ApplicationModule {
     return this._topUpPaymentRequestPolicy;
   }
 
+  onTopUpRequested(handler: TopUpRequestedHandler): void {
+    this._eventBus.subscribe('GiftCardTopUpRequested', {
+      on: (event) => {
+        if (event.kind === 'GiftCardTopUpRequested') {
+          handler(event);
+        }
+      },
+    });
+  }
+
   configure(app: Express): void {
     const giftCardIssuing = new GiftCardIssuing(this._giftCardRepository);
     const topUpRequesting = new TopUpRequesting(this._giftCardRepository, this._eventBus);
@@ -77,18 +83,6 @@ export class GiftCardModule extends ApplicationModule {
 
     const api = new GiftCardApi(giftCardIssuing, giftCardQueryService, topUpRequesting);
     api.configure(app);
-  }
-
-  private registerCrossBcHandlers(): void {
-    for (const handler of this._topUpRequestedHandlers) {
-      this._eventBus.subscribe('GiftCardTopUpRequested', {
-        on: (event) => {
-          if (event.kind === 'GiftCardTopUpRequested') {
-            handler(event);
-          }
-        },
-      });
-    }
   }
 
   private createCreditFromBooking(): CreditFromBooking {

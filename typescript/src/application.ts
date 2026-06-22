@@ -4,18 +4,12 @@
 import type { Express } from 'express';
 import Database from 'better-sqlite3';
 import { BookingModule } from './booking/module.js';
-import { BookingPlaced } from './booking/domain/events/bookingPlaced.js';
-import type { BookingResultEvent } from './booking/domain/events/bookingResultEvents.js';
-import type {
-  BookingRejectedIntegrationEvent,
-  BookingResultIntegrationEvent,
-} from './booking/integration/giftcard/bookingResultIntegrationEvent.js';
+import { BookingResultEvent } from './booking/domain/events/bookingResultEvents.js';
 import { BookingPaymentRequestPolicy } from './booking/application/policies/bookingPaymentRequestPolicy.js';
 import { BookingRefundRequestPolicy } from './booking/application/policies/bookingRefundRequestPolicy.js';
 import { GiftCardModule } from './giftcard/module.js';
-import { GiftCardTopUpRequested } from './giftcard/domain/events/giftCardTopUpRequested.js';
 import { PaymentModule } from './payment/module.js';
-import type { RefundTransaction } from './payment/application/commands/refundTransaction.js';
+import { RefundTransaction } from './payment/application/commands/refundTransaction.js';
 import { RequestPayment } from './payment/application/commands/requestPayment.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
 
@@ -34,61 +28,45 @@ export class Application {
     requireDependency(paymentDatabase, "paymentDatabase");
 
     // PaymentModule prima: i suoi casi d'uso sono necessari al wiring degli altri moduli.
-    // Gli handler cross-BC vengono aggiunti dopo la costruzione per rompere il ciclo.
-    this._paymentModule = new PaymentModule(paymentDatabase, [], [], []);
+    // Gli handler cross-BC vengono aggiunti dopo la costruzione per rompere i cicli.
+    this._paymentModule = new PaymentModule(paymentDatabase);
+    this._giftCardModule = new GiftCardModule(giftCardDatabase);
+    this._bookingModule = new BookingModule(bookingDatabase);
 
-    // AtomicReference risolve il ciclo di inizializzazione di GiftCardModule.
-    const giftCardModuleRef: { current: GiftCardModule | null } = { current: null };
-    const topUpToPaymentHandler = (event: GiftCardTopUpRequested): void => {
-      if (giftCardModuleRef.current === null) {
-        throw new Error('GiftCardModule not initialized');
-      }
-      const command: RequestPayment = giftCardModuleRef.current.topUpPaymentRequestPolicy().evaluate(event);
+    this.wireTopUpRequests();
+    this.wireBookingResults();
+    this.wirePaymentResults();
+  }
+
+  private wirePaymentResults(): void {
+    this._paymentModule.onPaymentResult((event) => this._bookingModule.handlePaymentResultFromPayment().handle(event));
+    this._paymentModule.onPaymentResult((event) => this._giftCardModule.confirmTopUpFromPayment().handle(event));
+  }
+
+  private wireBookingResults(): void {
+    this._bookingModule.onBookingResultIntegration((event) => this._giftCardModule.creditFromBooking().handle(event));
+    this._bookingModule.onBookingRejectedIntegration((event) => this._giftCardModule.refundFromBooking().handle(event));
+  }
+
+  private wireTopUpRequests(): void {
+    this._giftCardModule.onTopUpRequested((event) => {
+      const command: RequestPayment = this._giftCardModule.topUpPaymentRequestPolicy().evaluate(event);
       this._paymentModule.paymentRequesting().invoke(command);
-    };
+    });
 
-    this._giftCardModule = new GiftCardModule(giftCardDatabase, [topUpToPaymentHandler]);
-    giftCardModuleRef.current = this._giftCardModule;
-
-    const bookingRefundRequestPolicy = new BookingRefundRequestPolicy(this._paymentModule.paymentRepository());
     const bookingPaymentRequestPolicy = new BookingPaymentRequestPolicy();
-
-    const bookingPlacedHandler = (event: BookingPlaced): void => {
+    this._bookingModule.onBookingPlaced((event) => {
       const command: RequestPayment = bookingPaymentRequestPolicy.evaluate(event);
       this._paymentModule.paymentRequesting().invoke(command);
-    };
+    });
 
-    const bookingConfirmedHandler = (event: BookingResultEvent): void => {
+    const bookingRefundRequestPolicy = new BookingRefundRequestPolicy(this._paymentModule.paymentRepository());
+    this._bookingModule.onBookingResult((event: BookingResultEvent) => {
       if (event.kind === 'BookingRefused') {
         const refundCommand: RefundTransaction = bookingRefundRequestPolicy.evaluate(event);
         this._paymentModule.refundRequesting().invoke(refundCommand);
       }
-    };
-
-    const bookingResultIntegrationHandler = (event: BookingResultIntegrationEvent): void => {
-      this._giftCardModule.creditFromBooking().handle(event);
-    };
-
-    const bookingRejectedIntegrationHandler = (event: BookingRejectedIntegrationEvent): void => {
-      this._giftCardModule.refundFromBooking().handle(event);
-    };
-
-    this._bookingModule = new BookingModule(
-      bookingDatabase,
-      [bookingPlacedHandler],
-      [bookingConfirmedHandler],
-      [],
-      [bookingResultIntegrationHandler],
-      [bookingRejectedIntegrationHandler]
-    );
-
-    this._paymentModule.onPaymentAccepted((event) => this._bookingModule.handlePaymentResultFromPayment().handle(event));
-    this._paymentModule.onPaymentRejected((event) => this._bookingModule.handlePaymentResultFromPayment().handle(event));
-    this._paymentModule.onPaymentExpired((event) => this._bookingModule.handlePaymentResultFromPayment().handle(event));
-
-    this._paymentModule.onPaymentAccepted((event) => this._giftCardModule.confirmTopUpFromPayment().handle(event));
-    this._paymentModule.onPaymentRejected((event) => this._giftCardModule.confirmTopUpFromPayment().handle(event));
-    this._paymentModule.onPaymentExpired((event) => this._giftCardModule.confirmTopUpFromPayment().handle(event));
+    });
   }
 
   configure(app: Express): void {

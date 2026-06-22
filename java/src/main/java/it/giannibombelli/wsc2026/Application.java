@@ -6,7 +6,6 @@ import it.giannibombelli.wsc2026.common.utils.Require;
 import io.javalin.config.JavalinConfig;
 import it.giannibombelli.wsc2026.booking.BookingModule;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents;
-import it.giannibombelli.wsc2026.common.module.ApplicationModule;
 import it.giannibombelli.wsc2026.giftcard.GiftCardModule;
 import it.giannibombelli.wsc2026.giftcard.application.integration.payment.adapter.PaymentRequest;
 import it.giannibombelli.wsc2026.payment.PaymentModule;
@@ -18,7 +17,7 @@ import java.util.Map;
  * Composition root condiviso tra {@link Main} e i test E2E.
  * Accetta esplicitamente i DataSource per mantenere i test isolati.
  */
-public final class Application extends ApplicationModule {
+public final class Application {
 
     private final BookingModule bookingModule;
     private final GiftCardModule giftCardModule;
@@ -68,7 +67,6 @@ public final class Application extends ApplicationModule {
         });
     }
 
-    @Override
     public void configure(JavalinConfig config) {
         config.routes.exception(IllegalArgumentException.class, (e, ctx) ->
             ctx.status(400).json(Map.of("error", e.getMessage()))
@@ -85,7 +83,6 @@ public final class Application extends ApplicationModule {
         paymentModule.configure(config);
     }
 
-    @Override
     public void stop() {
         bookingModule.stop();
         giftCardModule.stop();

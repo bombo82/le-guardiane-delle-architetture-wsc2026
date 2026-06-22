@@ -478,12 +478,136 @@ Per proteggere la nuova PL di `payment`, sono state aggiunte regole AFF specular
 
 ---
 
-## 8. Cosa non è stato ancora risolto
+## 8. Composition root e incapsulamento dei moduli
 
-Nel branch `solutions` non rimangono violazioni architetturali attive. Tutte le relazioni cross-BC sono state disaccoppiate tramite Published Language e Anti-Corruption Layer.
+> ⚠️ **Stato attuale**: questa soluzione è **descritta ma non ancora implementata** nel branch `solutions`. Il codice sorgente attuale espone ancora gli handler concreti e `Application` dipende ancora dagli adapter interni di `booking` e `giftcard`. Le regole AFF `CompositionRootArchitectureTest` / `compositionRootArchitecture.test.ts` sono attualmente **rosse** per evidenziare il problema.
+
+### Problema
+
+Dopo il disaccoppiamento cross-BC, `Application` continuava a dipendere dagli **internals** dei moduli in due modi.
+
+#### 8.1 Handler di integrazione esposti
+
+I moduli esponevano handler concreti:
+
+```text
+booking.BookingModule.handlePaymentResultFromPayment()
+  → booking.application.integration.payment.handlers.HandlePaymentResultFromPayment
+
+giftcard.GiftCardModule.confirmTopUpFromPayment()
+  → giftcard.application.integration.payment.handlers.ConfirmTopUpFromPayment
+
+giftcard.GiftCardModule.creditFromBooking()
+  → giftcard.application.integration.booking.handlers.CreditFromBooking
+
+giftcard.GiftCardModule.refundFromBooking()
+  → giftcard.application.integration.booking.handlers.RefundFromBooking
+```
+
+`Application` li consumava direttamente per costruire i `Consumer` da passare agli event bus:
+
+```java
+paymentModule.onPaymentResult(bookingModule.handlePaymentResultFromPayment()::handle);
+paymentModule.onPaymentResult(giftCardModule.confirmTopUpFromPayment()::handle);
+bookingModule.onBookingResultIntegration(giftCardModule.creditFromBooking()::handle);
+bookingModule.onBookingRejectedIntegration(giftCardModule.refundFromBooking()::handle);
+```
+
+#### 8.2 Adapter di integrazione usati dal composition root
+
+`Application` chiamava direttamente gli adapter dei moduli downstream per tradurre eventi di dominio in command di integrazione verso `payment`:
+
+```java
+giftCardModule.onTopUpRequested(event ->
+    paymentModule.requestPayment(PaymentRequest.fromTopUp(event))
+);
+
+bookingModule.onBookingPlaced(event ->
+    paymentModule.requestPayment(PaymentRequest.fromBookingPlaced(event))
+);
+
+bookingModule.onBookingResult(event -> {
+    if (event instanceof BookingResultEvents.BookingRefused refused) {
+        paymentModule.requestRefund(RefundRequest.fromBookingRefused(refused));
+    }
+});
+```
+
+Le classi usate appartenevano agli ACL dei moduli downstream:
+
+```text
+giftcard.application.integration.payment.adapter.PaymentRequest
+booking.application.integration.payment.adapter.PaymentRequest
+booking.application.integration.payment.adapter.RefundRequest
+```
+
+Questo rompe l’incapsulamento: il composition root conosce e dipende dalla struttura interna dei moduli e dal loro linguaggio di dominio (`GiftCardTopUpRequested`, `BookingPlaced`, `BookingRefused`).
+
+### Soluzione adottata
+
+I moduli sono stati arricchiti con metodi di **sottoscrizione semantici** che nascondono handler e adapter, restituendo direttamente i command/eventi di integrazione.
+
+Esempi di nuovi metodi pubblici:
+
+```text
+booking.BookingModule
+  ├── onPaymentResult(Consumer<PaymentResultIntegrationEvent>)
+  ├── onBookingPlaced(Consumer<PaymentRequestIntegrationCommand>)
+  └── onBookingRefused(Consumer<RefundRequestIntegrationCommand>)
+
+giftcard.GiftCardModule
+  ├── onPaymentResult(Consumer<PaymentResultIntegrationEvent>)
+  ├── onTopUpRequested(Consumer<PaymentRequestIntegrationCommand>)
+  ├── onBookingCompleted(Consumer<BookingCompletedIntegrationEvent>)
+  ├── onBookingRefused(Consumer<BookingRefusedIntegrationEvent>)
+  └── onBookingRejected(Consumer<BookingRejectedIntegrationEvent>)
+```
+
+I dettagli interni (handler e adapter) restano privati e vengono cablati internamente dal modulo stesso.
+
+Il wiring in `Application` diventa:
+
+```java
+paymentModule.onPaymentResult(bookingModule::onPaymentResult);
+paymentModule.onPaymentResult(giftCardModule::onPaymentResult);
+bookingModule.onBookingResultIntegration(giftCardModule::onBookingCompleted);
+bookingModule.onBookingRejectedIntegration(giftCardModule::onBookingRejected);
+
+giftCardModule.onTopUpRequested(paymentModule::requestPayment);
+bookingModule.onBookingPlaced(paymentModule::requestPayment);
+bookingModule.onBookingRefused(paymentModule::requestRefund);
+```
+
+> Nota: i flussi `BookingRefused` e `BookingRejected` possono restare distinti o essere unificati in un unico `onBookingResult(Consumer<BookingResultIntegrationEvent>)`, a seconda di quanto si vuole rendere generico il contratto pubblico di `giftcard`.
+
+### Regole AFF aggiunte
+
+```text
+CompositionRootArchitectureTest.modulesMustNotExposeIntegrationHandlers
+CompositionRootArchitectureTest.compositionRootMustNotDependOnIntegrationAdapters
+```
+
+La prima regola verifica che nessun metodo pubblico di un modulo restituisca un tipo appartenente a `..application.integration.handlers..`.
+La seconda verifica che `Application` non dipenda da classi in `..booking.application.integration..` o `..giftcard.application.integration..`.
+
+### Motivazione
+
+- **Superficie pubblica minima**: i moduli espongono solo operazioni semantiche (`onPaymentResult`, `onBookingCompleted`, ecc.), non oggetti implementativi.
+- **Incapsulamento**: rinominare, scomporre o sostituire uno handler o un adapter interno non impatta `Application`.
+- **ACL al proprio posto**: l’Anti-Corruption Layer resta all’interno del modulo downstream, invece di essere invocato dal composition root.
+- **Wiring esplicito preservato**: il composition root continua a collegare i moduli a mano, senza framework di DI, ma lo fa tramite contratti stabili.
+- **Coerenza con il resto della codebase**: il pattern è identico ai metodi `onTopUpRequested`, `onBookingPlaced`, `onBookingResult` già presenti nei moduli.
 
 ---
 
-## 9. Evoluzioni future
+## 9. Cosa non è stato ancora risolto
+
+Nel branch `solutions` rimane ancora **una violazione architetturale attiva**: l'incapsulamento del Composition Root descritto nella sezione 8 non è ancora stato applicato. `Application` dipende ancora dagli handler di integrazione interni di `booking` e `giftcard`, e chiama direttamente gli adapter interni dei due BC per tradurre eventi di dominio in command verso `payment`.
+
+Tutte le altre relazioni cross-BC sono state disaccoppiate tramite Published Language e Anti-Corruption Layer.
+
+---
+
+## 10. Evoluzioni future
 
 Il branch `feature/usecase-aff-rule` contiene un'ulteriore evoluzione: una regola `useCasesMustImplementUseCase` che verifica che tutte le classi in `application/usecases` implementino l'interfaccia `UseCase`. Quella regola rileva che `PaymentExpiring`, `TransactionAccepting` e `TransactionRejecting` sono in realtà `EventSubscriber`, non use case: apre il discorso su dove collocare gli orchestratori event-driven e su come distinguere use case, servizi applicativi e event handler. Il tema verrà affrontato in un momento successivo del workshop.

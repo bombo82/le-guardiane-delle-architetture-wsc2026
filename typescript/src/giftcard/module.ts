@@ -17,14 +17,14 @@ import { GiftCardTopUpRequested } from './domain/events/giftCardTopUpRequested.j
 import { BookingResult } from './application/integration/booking/adapter/bookingResult.js';
 import { PaymentResult } from './application/integration/payment/adapter/paymentResult.js';
 import { InMemoryGiftCardEventBus } from './infrastructure/inMemoryGiftCardEventBus.js';
+import type { GiftCardRepository } from './domain/ports/giftCardRepository.js';
 import { SqliteGiftCardRepository } from './infrastructure/sqliteGiftCardRepository.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
 
 export type TopUpRequestedHandler = (event: GiftCardTopUpRequested) => void;
 
 export class GiftCardModule extends ApplicationModule {
-  private readonly _database: Database.Database;
-  private readonly _giftCardRepository: SqliteGiftCardRepository;
+  private readonly _giftCardRepository: GiftCardRepository;
   private readonly _eventBus: InMemoryGiftCardEventBus;
   private readonly _bookingResult: BookingResult;
   private readonly _paymentResult: PaymentResult;
@@ -37,8 +37,7 @@ export class GiftCardModule extends ApplicationModule {
 
     requireDependency(database, "database");
 
-    this._database = database;
-    this._giftCardRepository = new SqliteGiftCardRepository(this._database);
+    this._giftCardRepository = new SqliteGiftCardRepository(database);
     this._eventBus = new InMemoryGiftCardEventBus((task) => task());
     this._bookingResult = new BookingResult();
     this._paymentResult = new PaymentResult();

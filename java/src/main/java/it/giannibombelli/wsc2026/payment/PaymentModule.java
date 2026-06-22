@@ -45,7 +45,6 @@ import java.util.function.Consumer;
 
 public final class PaymentModule extends ApplicationModule {
 
-    private final DataSource dataSource;
     private final PaymentRepository paymentRepository;
     private final EventBus<PaymentEvent> eventBus;
     private final PaymentRequesting paymentRequesting;
@@ -54,9 +53,7 @@ public final class PaymentModule extends ApplicationModule {
     private PaymentDeadlineWatcher watcher;
 
     public PaymentModule(DataSource dataSource) {
-        super();
         Require.requireDependency(dataSource, "dataSource");
-        this.dataSource = dataSource;
         this.paymentRepository = new SqlitePaymentRepository(dataSource);
         this.eventBus = new InMemoryPaymentEventBus(Executors.newVirtualThreadPerTaskExecutor());
         this.paymentResultIntegrationHandlers = new ArrayList<>();
@@ -87,18 +84,6 @@ public final class PaymentModule extends ApplicationModule {
                         event.clientReference().value().toString(), event.amount());
                 paymentResultIntegrationHandlers.forEach(h -> h.accept(integrationEvent));
             });
-    }
-
-    public PaymentRepository paymentRepository() {
-        return paymentRepository;
-    }
-
-    public PaymentRequesting paymentRequesting() {
-        return paymentRequesting;
-    }
-
-    public RefundRequesting refundRequesting() {
-        return refundRequesting;
     }
 
     public void onPaymentResult(Consumer<PaymentResultIntegrationEvent> handler) {

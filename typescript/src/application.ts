@@ -5,12 +5,11 @@ import type { Express } from 'express';
 import Database from 'better-sqlite3';
 import { BookingModule } from './booking/module.js';
 import { BookingResultEvent } from './booking/domain/events/bookingResultEvents.js';
-import { BookingPaymentRequestPolicy } from './booking/application/policies/bookingPaymentRequestPolicy.js';
-import { BookingRefundRequestPolicy } from './booking/application/policies/bookingRefundRequestPolicy.js';
+import { paymentRequestFromBookingPlaced } from './booking/application/integration/payment/adapter/paymentRequest.js';
+import { refundRequestFromBookingRefused } from './booking/application/integration/payment/adapter/refundRequest.js';
 import { GiftCardModule } from './giftcard/module.js';
+import { paymentRequestFromTopUp } from './giftcard/application/integration/payment/adapter/paymentRequest.js';
 import { PaymentModule } from './payment/module.js';
-import { RefundTransaction } from './payment/application/commands/refundTransaction.js';
-import { RequestPayment } from './payment/application/commands/requestPayment.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
 
 export class Application {
@@ -49,22 +48,17 @@ export class Application {
   }
 
   private wireTopUpRequests(): void {
-    this._giftCardModule.onTopUpRequested((event) => {
-      const command: RequestPayment = this._giftCardModule.topUpPaymentRequestPolicy().evaluate(event);
-      this._paymentModule.paymentRequesting().invoke(command);
-    });
+    this._giftCardModule.onTopUpRequested((event) =>
+      this._paymentModule.requestPayment(paymentRequestFromTopUp(event))
+    );
 
-    const bookingPaymentRequestPolicy = new BookingPaymentRequestPolicy();
-    this._bookingModule.onBookingPlaced((event) => {
-      const command: RequestPayment = bookingPaymentRequestPolicy.evaluate(event);
-      this._paymentModule.paymentRequesting().invoke(command);
-    });
+    this._bookingModule.onBookingPlaced((event) =>
+      this._paymentModule.requestPayment(paymentRequestFromBookingPlaced(event))
+    );
 
-    const bookingRefundRequestPolicy = new BookingRefundRequestPolicy(this._paymentModule.paymentRepository());
     this._bookingModule.onBookingResult((event: BookingResultEvent) => {
       if (event.kind === 'BookingRefused') {
-        const refundCommand: RefundTransaction = bookingRefundRequestPolicy.evaluate(event);
-        this._paymentModule.refundRequesting().invoke(refundCommand);
+        this._paymentModule.requestRefund(refundRequestFromBookingRefused(event));
       }
     });
   }

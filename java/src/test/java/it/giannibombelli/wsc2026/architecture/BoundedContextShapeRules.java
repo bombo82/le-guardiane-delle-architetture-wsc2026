@@ -28,6 +28,7 @@ public final class BoundedContextShapeRules {
             .that().resideInAPackage(boundedContextPackage + ".application.policies..")
             .and().areNotInterfaces()
             .should().implement(Policy.class)
+            .allowEmptyShould(true)
             .because("every concrete policy in " + boundedContextPackage + " must implement Policy");
     }
 }

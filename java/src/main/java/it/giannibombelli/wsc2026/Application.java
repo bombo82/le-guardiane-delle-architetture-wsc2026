@@ -6,13 +6,10 @@ import it.giannibombelli.wsc2026.common.utils.Require;
 import io.javalin.config.JavalinConfig;
 import it.giannibombelli.wsc2026.booking.BookingModule;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents;
-import it.giannibombelli.wsc2026.booking.application.policies.BookingPaymentRequestPolicy;
-import it.giannibombelli.wsc2026.booking.application.policies.BookingRefundRequestPolicy;
 import it.giannibombelli.wsc2026.common.module.ApplicationModule;
 import it.giannibombelli.wsc2026.giftcard.GiftCardModule;
+import it.giannibombelli.wsc2026.giftcard.application.integration.payment.adapter.PaymentRequest;
 import it.giannibombelli.wsc2026.payment.PaymentModule;
-import it.giannibombelli.wsc2026.payment.application.commands.RefundTransaction;
-import it.giannibombelli.wsc2026.payment.application.commands.RequestPayment;
 
 import javax.sql.DataSource;
 import java.util.Map;
@@ -52,22 +49,21 @@ public final class Application extends ApplicationModule {
     }
 
     private void wireTopUpRequests() {
-        giftCardModule.onTopUpRequested(event -> {
-            RequestPayment cmd = giftCardModule.topUpPaymentRequestPolicy().evaluate(event);
-            paymentModule.paymentRequesting().invoke(cmd);
-        });
+        giftCardModule.onTopUpRequested(event ->
+            paymentModule.requestPayment(PaymentRequest.fromTopUp(event))
+        );
 
-        BookingPaymentRequestPolicy bookingPaymentRequestPolicy = new BookingPaymentRequestPolicy();
-        bookingModule.onBookingPlaced(event -> {
-            RequestPayment cmd = bookingPaymentRequestPolicy.evaluate(event);
-            paymentModule.paymentRequesting().invoke(cmd);
-        });
+        bookingModule.onBookingPlaced(event ->
+            paymentModule.requestPayment(
+                it.giannibombelli.wsc2026.booking.application.integration.payment.adapter.PaymentRequest.fromBookingPlaced(event)
+            )
+        );
 
-        BookingRefundRequestPolicy bookingRefundRequestPolicy = new BookingRefundRequestPolicy(paymentModule.paymentRepository());
         bookingModule.onBookingResult(event -> {
             if (event instanceof BookingResultEvents.BookingRefused refused) {
-                RefundTransaction cmd = bookingRefundRequestPolicy.evaluate(refused);
-                paymentModule.refundRequesting().invoke(cmd);
+                paymentModule.requestRefund(
+                    it.giannibombelli.wsc2026.booking.application.integration.payment.adapter.RefundRequest.fromBookingRefused(refused)
+                );
             }
         });
     }

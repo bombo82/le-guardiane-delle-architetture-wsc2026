@@ -8,7 +8,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 
 export abstract class ApplicationModule {
-  initializeDb(moduleName: string): Database.Database {
+  static initializeDb(moduleName: string): Database.Database {
     const path = `data/${moduleName}/${moduleName}.db`;
     mkdirSync(dirname(path), { recursive: true });
 

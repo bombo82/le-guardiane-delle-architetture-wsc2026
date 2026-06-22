@@ -9,18 +9,20 @@
 
 | Implementazione | Test AFF totali | Falliti | Passati |
 |---|---|---|---|
-| Java | 41 | **0** | 41 |
-| TypeScript | 42 | **0** | 42 |
+| Java | 43 | **2** | 41 |
+| TypeScript | 44 | **2** | 42 |
 
 > I numeri includono le regole ArchUnit/TS su cross-BC dependencies, Published Language / ACL, hexagonal architecture, shape rules e domain/application purity per ciascun bounded context.
 
-**Non ci sono più violazioni architetturali attive.** Tutte le relazioni cross-BC sono state disaccoppiate tramite **Published Language** e **Anti-Corruption Layer**:
+Tutte le relazioni cross-BC sono state disaccoppiate tramite **Published Language** e **Anti-Corruption Layer**:
 
 - `booking → giftcard` (risultati prenotazione);
 - `payment → giftcard` e `payment → booking` (esiti pagamento);
 - `booking → payment` e `giftcard → payment` (richiesta pagamento / rimborso).
 
 Layer interni esagonali e shape rules sono **tutti a posto**.
+
+> ⚠️ **È attiva una nuova violazione** relativa al **Composition Root**: `Application` accede direttamente agli handler di integrazione interni dei moduli. Vedi sezione 4.
 
 ---
 
@@ -152,6 +154,90 @@ booking.domain.events.BookingResultEvents.BookingRefused
 
 ---
 
+## 4. Composition root e incapsulamento dei moduli
+
+| Regola AFF | Stato | BC coinvolto | Dettaglio |
+|---|---|---|---|
+| I moduli non devono esporre handler di integrazione nel loro contratto pubblico | ❌ Violata | `booking`, `giftcard` | `Application` accede direttamente agli handler concreti per registrare le reazioni cross-BC. |
+| Il composition root non deve dipendere dagli anti-corruption layer interni dei moduli | ❌ Violata | `booking`, `giftcard` | `Application` chiama direttamente gli adapter in `application.integration.*.adapter` per tradurre eventi in command di integrazione. |
+
+### 4.1 Esposizione degli handler
+
+I seguenti metodi pubblici dei moduli espongono tipi appartenenti al package `application.integration.handlers`:
+
+```text
+booking.BookingModule.handlePaymentResultFromPayment()
+  → booking.application.integration.payment.handlers.HandlePaymentResultFromPayment
+
+giftcard.GiftCardModule.confirmTopUpFromPayment()
+  → giftcard.application.integration.payment.handlers.ConfirmTopUpFromPayment
+
+giftcard.GiftCardModule.creditFromBooking()
+  → giftcard.application.integration.booking.handlers.CreditFromBooking
+
+giftcard.GiftCardModule.refundFromBooking()
+  → giftcard.application.integration.booking.handlers.RefundFromBooking
+```
+
+`Application` li consuma così:
+
+```java
+paymentModule.onPaymentResult(bookingModule.handlePaymentResultFromPayment()::handle);
+paymentModule.onPaymentResult(giftCardModule.confirmTopUpFromPayment()::handle);
+bookingModule.onBookingResultIntegration(giftCardModule.creditFromBooking()::handle);
+bookingModule.onBookingRejectedIntegration(giftCardModule.refundFromBooking()::handle);
+```
+
+### 4.2 Accesso diretto agli adapter di integrazione
+
+`Application` chiama direttamente gli adapter dei moduli downstream per tradurre eventi di dominio in command verso `payment`:
+
+```java
+giftCardModule.onTopUpRequested(event ->
+    paymentModule.requestPayment(PaymentRequest.fromTopUp(event))
+);
+
+bookingModule.onBookingPlaced(event ->
+    paymentModule.requestPayment(PaymentRequest.fromBookingPlaced(event))
+);
+
+bookingModule.onBookingResult(event -> {
+    if (event instanceof BookingResultEvents.BookingRefused refused) {
+        paymentModule.requestRefund(RefundRequest.fromBookingRefused(refused));
+    }
+});
+```
+
+Le classi usate appartengono agli ACL dei moduli downstream:
+
+```text
+giftcard.application.integration.payment.adapter.PaymentRequest
+booking.application.integration.payment.adapter.PaymentRequest
+booking.application.integration.payment.adapter.RefundRequest
+```
+
+### Nota didattica
+
+Il **Composition Root** dovrebbe essere il punto in cui i moduli vengono collegati, non il punto in cui si conoscono i dettagli interni di ciascun modulo. Esporre handler concreti rompe l’incapsulamento: un refactor interno (rinominare uno handler, sostituirlo con una policy, dividerlo in più passaggi) si propaga in `Application`.
+
+Anche l’accesso agli **adapter di integrazione** dal composition root è problematico: l’ACL appartiene al modulo downstream e dovrebbe restare al suo interno. Se `Application` traduce eventi di dominio in command di integrazione, conosce sia il modello interno di `booking`/`giftcard` sia il contratto di integrazione di `payment`.
+
+La soluzione completa consiste nel far esporre a ciascun modulo metodi di **sottoscrizione semantici** che restituiscano già i command/eventi di integrazione. Ad esempio:
+
+```text
+giftcard.GiftCardModule.onTopUpRequested(Consumer<PaymentRequestIntegrationCommand>)
+booking.BookingModule.onBookingPlaced(Consumer<PaymentRequestIntegrationCommand>)
+booking.BookingModule.onBookingRefused(Consumer<RefundRequestIntegrationCommand>)
+```
+
+In questo modo:
+
+- `Application` dipende solo dalla superficie pubblica dei moduli e dalla Published Language di `payment`;
+- i moduli restano black box: nascondono handler, adapter e eventi di dominio interni;
+- il wiring manuale ed esplicito — principio fondamentale del workshop — viene preservato senza perdere leggibilità.
+
+---
+
 ## Rappresentazione grafica ad alto livello
 
 ```text
@@ -216,6 +302,7 @@ booking.domain.events.BookingResultEvents.BookingRefused
 | Pattern | Perché è importante | Effetto sul refactoring |
 |---|---|---|
 | Published Language + ACL | I BC non sono più isolati; un cambiamento in `payment` si propaga in `booking` e `giftcard`. | Rottura del confine modulare; difficile estrarre un BC in micro-servizio. |
+| Incapsulamento del Composition Root | Esporre handler concreti nel contratto pubblico di un modulo lega il composition root ai dettagli implementativi. | Rinominare o sostituire uno handler interno richiede di modificare `Application`. |
 
 Tutte le relazioni cross-BC sono ora protette da PL + ACL. Un refactor interno a `payment` (nomi eventi, struttura aggregate, command interni) non impatta più `booking` o `giftcard`, purché la Published Language in `payment.integration` resti stabile.
 
@@ -223,7 +310,8 @@ Tutte le relazioni cross-BC sono ora protette da PL + ACL. Un refactor interno a
 
 ## Note
 
-- I test AFF sono **tutti attivi e passanti** sia in Java che in TypeScript.
+- In Java è attiva **una violazione** relativa all’incapsulamento del Composition Root; tutte le altre regole AFF sono passanti.
+- Anche in TypeScript è ora attiva la stessa **violazione** sul Composition Root, con le regole `compositionRootArchitecture` rosse.
 - Non rimangono violazioni architetturali cross-BC nel branch `solutions`.
 - Sono state aggiunte regole AFF esplicite per proteggere la Published Language di `payment`, in modo simmetrico a quanto già fatto per `booking`.
 - Il branch `feature/usecase-aff-rule` contiene invece l'evoluzione con la regola `useCasesMustImplementUseCase`, da approfondire in un momento successivo del workshop.

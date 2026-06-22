@@ -46,7 +46,6 @@ import { requireDependency } from '@/common/utils/requireDependency.js';
 type PaymentResultIntegrationHandler = (event: PaymentResultIntegrationEvent) => void;
 
 export class PaymentModule extends ApplicationModule {
-  private readonly _database: Database.Database;
   private readonly _paymentRepository: PaymentRepository;
   private readonly _eventBus: InMemoryPaymentEventBus;
   private readonly _paymentRequesting: PaymentRequesting;
@@ -60,8 +59,7 @@ export class PaymentModule extends ApplicationModule {
     requireDependency(database, "database");
 
     this._paymentResultIntegrationHandlers = [];
-    this._database = database;
-    this._paymentRepository = new SqlitePaymentRepository(this._database);
+    this._paymentRepository = new SqlitePaymentRepository(database);
     this._eventBus = new InMemoryPaymentEventBus((task) => setImmediate(task));
     this._paymentRequesting = new PaymentRequesting(this._paymentRepository, this._eventBus);
     this._refundRequesting = new RefundRequesting(this._paymentRepository, this._eventBus);
@@ -103,18 +101,6 @@ export class PaymentModule extends ApplicationModule {
         }
       },
     });
-  }
-
-  paymentRepository(): PaymentRepository {
-    return this._paymentRepository;
-  }
-
-  paymentRequesting(): PaymentRequesting {
-    return this._paymentRequesting;
-  }
-
-  refundRequesting(): RefundRequesting {
-    return this._refundRequesting;
   }
 
   onPaymentResult(handler: PaymentResultIntegrationHandler): void {

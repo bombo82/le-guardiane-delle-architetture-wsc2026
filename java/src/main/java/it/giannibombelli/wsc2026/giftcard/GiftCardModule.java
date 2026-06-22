@@ -16,6 +16,7 @@ import it.giannibombelli.wsc2026.giftcard.application.integration.payment.handle
 import it.giannibombelli.wsc2026.giftcard.application.usecases.*;
 import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardEvent;
 import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardTopUpRequested;
+import it.giannibombelli.wsc2026.giftcard.domain.ports.GiftCardRepository;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.InMemoryGiftCardEventBus;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.SqliteGiftCardRepository;
 
@@ -23,7 +24,7 @@ import javax.sql.DataSource;
 import java.util.function.Consumer;
 
 public final class GiftCardModule extends ApplicationModule {
-    private final SqliteGiftCardRepository giftCardRepository;
+    private final GiftCardRepository giftCardRepository;
     private final EventBus<GiftCardEvent> eventBus;
     private final PaymentResult paymentResult;
     private final ConfirmTopUpFromPayment confirmTopUpFromPayment;
@@ -32,7 +33,6 @@ public final class GiftCardModule extends ApplicationModule {
     private final RefundFromBooking refundFromBooking;
 
     public GiftCardModule(DataSource dataSource) {
-        super();
         Require.requireDependency(dataSource, "dataSource");
 
         this.giftCardRepository = new SqliteGiftCardRepository(dataSource);

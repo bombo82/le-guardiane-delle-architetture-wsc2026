@@ -20,6 +20,7 @@ import {
 } from './integration/giftcard/bookingResultIntegrationEvent.js';
 import { PaymentResult } from './application/integration/payment/adapter/paymentResult.js';
 import { InMemoryBookingEventBus } from './infrastructure/inMemoryBookingEventBus.js';
+import type { BookingRepository } from './domain/ports/bookingRepository.js';
 import { SqliteBookingRepository } from './infrastructure/sqliteBookingRepository.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
 
@@ -29,8 +30,7 @@ export type BookingResultIntegrationHandler = (event: BookingResultIntegrationEv
 export type BookingRejectedIntegrationHandler = (event: BookingRejectedIntegrationEvent) => void;
 
 export class BookingModule extends ApplicationModule {
-  private readonly _database: Database.Database;
-  private readonly _bookingRepository: SqliteBookingRepository;
+  private readonly _bookingRepository: BookingRepository;
   private readonly _eventBus: InMemoryBookingEventBus;
   private readonly _handlePaymentResultFromPayment: HandlePaymentResultFromPayment;
 
@@ -39,8 +39,7 @@ export class BookingModule extends ApplicationModule {
 
     requireDependency(database, "database");
 
-    this._database = database;
-    this._bookingRepository = new SqliteBookingRepository(this._database);
+    this._bookingRepository = new SqliteBookingRepository(database);
     this._eventBus = new InMemoryBookingEventBus((task) => task());
     this._handlePaymentResultFromPayment = this.createHandlePaymentResultFromPayment();
   }

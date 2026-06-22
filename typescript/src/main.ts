@@ -9,14 +9,8 @@ import { IllegalArgumentError } from './common/errors/illegalArgumentError.js';
 import { openapiSpecification } from './common/api/openapi.js';
 import Database from 'better-sqlite3';
 
-class MainApplicationModule extends ApplicationModule {
-  configure(): void {
-    // non utilizzato: il wiring è gestito da Application
-  }
-}
-
 function initializeDb(moduleName: string): Database.Database {
-  return new MainApplicationModule().initializeDb(moduleName);
+  return ApplicationModule.initializeDb(moduleName);
 }
 
 function parsePort(args: string[]): number {

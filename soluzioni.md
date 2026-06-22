@@ -206,3 +206,23 @@ giftcard
 - *Condividere gli eventi di dominio come contratto pubblico*: espone il modello interno di `booking` a ogni sua evoluzione.
 - *Tradurre gli eventi nel composition root*: sposta il coupling nel punto meno coeso del sistema (vedi problema 8).
 - *Message broker con schema registry*: oltre lo scope didattico del workshop.
+
+### 6. Decoupling del flusso eventi `payment` → `giftcard` / `booking`
+
+**Soluzione**
+
+1. Published Language di `payment` in `payment.integration`: `PaymentResultIntegrationEvent` con i sottotipi `PaymentAccepted`, `PaymentRejected`, `PaymentExpired`; campi solo di tipi stabili.
+2. `PaymentModule` traduce gli eventi interni nei corrispondenti eventi di integrazione e li notifica agli handler cross-BC registrati.
+3. ACL in `giftcard.application.integration.payment`: `adapter.PaymentResult` traduce `PaymentAcceptedIntegrationEvent` in `ConfirmTopUp`; `handlers.ConfirmTopUpFromPayment` orchestra l'adapter e `TopUpConfirming`. Rimossi `ConfirmTopUpPolicy` e `TopUpConfirmation`.
+4. Estensione a `booking`: `booking.application.integration.payment.adapter.PaymentResult` traduce `PaymentAccepted`/`PaymentRejected` in `ConfirmBooking`/`RejectBooking` (qui serve caricare il booking dal repository, perché il `clientReference` dell'evento è l'ID della prenotazione); `handlers.HandlePaymentResultFromPayment` orchestra adapter e use case. Rimossi `PaymentPolicy` e `PaymentResultOutcome`.
+
+**Motivazione**
+
+- PL generica e riutilizzabile: un unico contratto consumato da più BC downstream senza esporre il modello interno di `payment`.
+- ACL per ciascun downstream: se `payment` cambia gli eventi interni, solo il punto di pubblicazione e gli adapter vengono toccati.
+- Nessuna forzatura del pattern `Policy`: gli handler cross-BC sono orchestratori event-driven, non policy.
+
+**Alternative considerate**
+
+- *Una PL distinta per ogni consumatore (customer-supplier)*: più contratti da mantenere con lo stesso contenuto.
+- *Sottoscrivere gli eventi di dominio filtrandoli nei moduli downstream*: reintrodurrebbe la conoscenza del contratto interno di `payment`.

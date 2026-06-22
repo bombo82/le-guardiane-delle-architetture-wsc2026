@@ -43,9 +43,9 @@ class CrossBoundedContextDependenciesTest {
         .because("Common shared code must not depend on any bounded context");
 
     enum BoundedContext {
-        BOOKING("..booking.."),
-        GIFTCARD("..giftcard.."),
-        PAYMENT("..payment..");
+        BOOKING("it.giannibombelli.wsc2026.booking.."),
+        GIFTCARD("it.giannibombelli.wsc2026.giftcard.."),
+        PAYMENT("it.giannibombelli.wsc2026.payment..");
 
         private final String packagePattern;
 

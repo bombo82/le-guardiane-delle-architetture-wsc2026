@@ -4,8 +4,8 @@ import it.giannibombelli.wsc2026.common.utils.Require;
 
 import io.javalin.config.JavalinConfig;
 import it.giannibombelli.wsc2026.booking.api.BookingApi;
+import it.giannibombelli.wsc2026.booking.application.integration.payment.handlers.HandlePaymentResultFromPayment;
 import it.giannibombelli.wsc2026.booking.application.query.BookingQueryService;
-import it.giannibombelli.wsc2026.booking.application.services.PaymentResultOutcome;
 import it.giannibombelli.wsc2026.booking.application.usecases.BookingConfirming;
 import it.giannibombelli.wsc2026.booking.application.usecases.BookingPlacing;
 import it.giannibombelli.wsc2026.booking.application.usecases.BookingRejecting;
@@ -16,7 +16,7 @@ import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultInteg
 import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent.BookingCompletedIntegrationEvent;
 import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent.BookingRejectedIntegrationEvent;
 import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent.BookingRefusedIntegrationEvent;
-import it.giannibombelli.wsc2026.booking.application.policies.PaymentPolicy;
+import it.giannibombelli.wsc2026.booking.application.integration.payment.adapter.PaymentResult;
 import it.giannibombelli.wsc2026.booking.infrastructure.InMemoryBookingEventBus;
 import it.giannibombelli.wsc2026.booking.infrastructure.SqliteBookingRepository;
 import it.giannibombelli.wsc2026.common.application.events.EventBus;
@@ -32,7 +32,7 @@ public final class BookingModule extends ApplicationModule {
     private final DataSource dataSource;
     private final SqliteBookingRepository bookingRepository;
     private final EventBus<BookingEvent> eventBus;
-    private final PaymentResultOutcome paymentResultOutcome;
+    private final HandlePaymentResultFromPayment handlePaymentResultFromPayment;
     private final List<Consumer<BookingPlaced>> bookingPlacedHandlers;
     private final List<Consumer<BookingResultEvents>> bookingConfirmedHandlers;
     private final List<Consumer<BookingResultEvents.BookingRejected>> bookingRejectedHandlers;
@@ -61,11 +61,11 @@ public final class BookingModule extends ApplicationModule {
         this.bookingResultIntegrationHandlers = bookingResultIntegrationHandlers;
         this.bookingRejectedIntegrationHandlers = bookingRejectedIntegrationHandlers;
         registerCrossBcHandlers();
-        paymentResultOutcome = createPaymentResultOutcome();
+        handlePaymentResultFromPayment = createHandlePaymentResultFromPayment();
     }
 
-    public PaymentResultOutcome paymentResultOutcome() {
-        return paymentResultOutcome;
+    public HandlePaymentResultFromPayment handlePaymentResultFromPayment() {
+        return handlePaymentResultFromPayment;
     }
 
     public void configure(JavalinConfig config) {
@@ -76,11 +76,11 @@ public final class BookingModule extends ApplicationModule {
         api.configure(config);
     }
 
-    private PaymentResultOutcome createPaymentResultOutcome() {
-        PaymentPolicy paymentPolicy = new PaymentPolicy(bookingRepository);
+    private HandlePaymentResultFromPayment createHandlePaymentResultFromPayment() {
+        PaymentResult paymentResult = new PaymentResult(bookingRepository);
         BookingConfirming bookingConfirming = new BookingConfirming(bookingRepository, eventBus);
         BookingRejecting bookingRejecting = new BookingRejecting(bookingRepository, eventBus);
-        return new PaymentResultOutcome(paymentPolicy, bookingConfirming, bookingRejecting);
+        return new HandlePaymentResultFromPayment(paymentResult, bookingConfirming, bookingRejecting);
     }
 
     private void registerCrossBcHandlers() {

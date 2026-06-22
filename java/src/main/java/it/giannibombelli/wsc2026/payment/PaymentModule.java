@@ -13,6 +13,7 @@ import it.giannibombelli.wsc2026.payment.application.services.PaymentProcessing;
 import it.giannibombelli.wsc2026.payment.application.services.RefundHandling;
 import it.giannibombelli.wsc2026.payment.application.usecases.*;
 import it.giannibombelli.wsc2026.payment.domain.events.*;
+import it.giannibombelli.wsc2026.payment.integration.PaymentResultIntegrationEvent;
 import it.giannibombelli.wsc2026.payment.application.policies.PaymentCompletion;
 import it.giannibombelli.wsc2026.payment.application.policies.PaymentExpiration;
 import it.giannibombelli.wsc2026.payment.application.policies.PaymentRejection;
@@ -45,6 +46,9 @@ public final class PaymentModule extends ApplicationModule {
     private final List<Consumer<PaymentResultEvents.PaymentAccepted>> acceptedHandlers;
     private final List<Consumer<PaymentResultEvents.PaymentRejected>> rejectedHandlers;
     private final List<Consumer<PaymentResultEvents.PaymentExpired>> expiredHandlers;
+    private final List<Consumer<PaymentResultIntegrationEvent.PaymentAcceptedIntegrationEvent>> acceptedIntegrationHandlers;
+    private final List<Consumer<PaymentResultIntegrationEvent.PaymentRejectedIntegrationEvent>> rejectedIntegrationHandlers;
+    private final List<Consumer<PaymentResultIntegrationEvent.PaymentExpiredIntegrationEvent>> expiredIntegrationHandlers;
     private PaymentDeadlineWatcher watcher;
 
     public PaymentModule(DataSource dataSource) {
@@ -63,6 +67,9 @@ public final class PaymentModule extends ApplicationModule {
         this.acceptedHandlers = new ArrayList<>(requireNonNull(acceptedHandlers));
         this.rejectedHandlers = new ArrayList<>(requireNonNull(rejectedHandlers));
         this.expiredHandlers = new ArrayList<>(requireNonNull(expiredHandlers));
+        this.acceptedIntegrationHandlers = new ArrayList<>();
+        this.rejectedIntegrationHandlers = new ArrayList<>();
+        this.expiredIntegrationHandlers = new ArrayList<>();
         this.paymentRequesting = new PaymentRequesting(paymentRepository, eventBus);
         this.refundRequesting = new RefundRequesting(paymentRepository, eventBus);
         registerCrossBcResultHandlers();
@@ -70,11 +77,29 @@ public final class PaymentModule extends ApplicationModule {
 
     private void registerCrossBcResultHandlers() {
         eventBus.subscribe(PaymentResultEvents.PaymentAccepted.class,
-            (EventSubscriber<PaymentResultEvents.PaymentAccepted>) event -> acceptedHandlers.forEach(h -> h.accept(event)));
+            (EventSubscriber<PaymentResultEvents.PaymentAccepted>) event -> {
+                acceptedHandlers.forEach(h -> h.accept(event));
+                PaymentResultIntegrationEvent.PaymentAcceptedIntegrationEvent integrationEvent =
+                    new PaymentResultIntegrationEvent.PaymentAcceptedIntegrationEvent(
+                        event.clientReference().value().toString(), event.amount());
+                acceptedIntegrationHandlers.forEach(h -> h.accept(integrationEvent));
+            });
         eventBus.subscribe(PaymentResultEvents.PaymentRejected.class,
-            (EventSubscriber<PaymentResultEvents.PaymentRejected>) event -> rejectedHandlers.forEach(h -> h.accept(event)));
+            (EventSubscriber<PaymentResultEvents.PaymentRejected>) event -> {
+                rejectedHandlers.forEach(h -> h.accept(event));
+                PaymentResultIntegrationEvent.PaymentRejectedIntegrationEvent integrationEvent =
+                    new PaymentResultIntegrationEvent.PaymentRejectedIntegrationEvent(
+                        event.clientReference().value().toString(), event.amount(), event.reason().value());
+                rejectedIntegrationHandlers.forEach(h -> h.accept(integrationEvent));
+            });
         eventBus.subscribe(PaymentResultEvents.PaymentExpired.class,
-            (EventSubscriber<PaymentResultEvents.PaymentExpired>) event -> expiredHandlers.forEach(h -> h.accept(event)));
+            (EventSubscriber<PaymentResultEvents.PaymentExpired>) event -> {
+                expiredHandlers.forEach(h -> h.accept(event));
+                PaymentResultIntegrationEvent.PaymentExpiredIntegrationEvent integrationEvent =
+                    new PaymentResultIntegrationEvent.PaymentExpiredIntegrationEvent(
+                        event.clientReference().value().toString(), event.amount());
+                expiredIntegrationHandlers.forEach(h -> h.accept(integrationEvent));
+            });
     }
 
     public PaymentRepository paymentRepository() {
@@ -99,6 +124,18 @@ public final class PaymentModule extends ApplicationModule {
 
     public void addExpiredHandler(Consumer<PaymentResultEvents.PaymentExpired> handler) {
         expiredHandlers.add(requireNonNull(handler));
+    }
+
+    public void addAcceptedIntegrationHandler(Consumer<PaymentResultIntegrationEvent.PaymentAcceptedIntegrationEvent> handler) {
+        acceptedIntegrationHandlers.add(requireNonNull(handler));
+    }
+
+    public void addRejectedIntegrationHandler(Consumer<PaymentResultIntegrationEvent.PaymentRejectedIntegrationEvent> handler) {
+        rejectedIntegrationHandlers.add(requireNonNull(handler));
+    }
+
+    public void addExpiredIntegrationHandler(Consumer<PaymentResultIntegrationEvent.PaymentExpiredIntegrationEvent> handler) {
+        expiredIntegrationHandlers.add(requireNonNull(handler));
     }
 
     public void configure(JavalinConfig config) {

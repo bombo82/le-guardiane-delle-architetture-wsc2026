@@ -5,7 +5,7 @@ import Database from 'better-sqlite3';
 import { ApplicationModule } from '@/common/module/applicationModule.js';
 import { BookingApi } from './api/bookingApi.js';
 import { BookingQueryService } from './application/query/bookingQueryService.js';
-import { PaymentResultOutcome } from './application/services/paymentResultOutcome.js';
+import { HandlePaymentResultFromPayment } from './application/integration/payment/handlers/handlePaymentResultFromPayment.js';
 import { BookingConfirming } from './application/usecases/bookingConfirming.js';
 import { BookingPlacing } from './application/usecases/bookingPlacing.js';
 import { BookingRejecting } from './application/usecases/bookingRejecting.js';
@@ -18,7 +18,7 @@ import {
   type BookingRejectedIntegrationEvent,
   type BookingResultIntegrationEvent,
 } from './integration/giftcard/bookingResultIntegrationEvent.js';
-import { PaymentPolicy } from './application/policies/paymentPolicy.js';
+import { PaymentResult } from './application/integration/payment/adapter/paymentResult.js';
 import { InMemoryBookingEventBus } from './infrastructure/inMemoryBookingEventBus.js';
 import { SqliteBookingRepository } from './infrastructure/sqliteBookingRepository.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
@@ -33,7 +33,7 @@ export class BookingModule extends ApplicationModule {
   private readonly _database: Database.Database;
   private readonly _bookingRepository: SqliteBookingRepository;
   private readonly _eventBus: InMemoryBookingEventBus;
-  private readonly _paymentResultOutcome: PaymentResultOutcome;
+  private readonly _handlePaymentResultFromPayment: HandlePaymentResultFromPayment;
   private readonly _bookingPlacedHandlers: BookingPlacedHandler[];
   private readonly _bookingConfirmedHandlers: BookingResultHandler[];
   private readonly _bookingRejectedHandlers: BookingRejectedHandler[];
@@ -61,11 +61,11 @@ export class BookingModule extends ApplicationModule {
     this._bookingResultIntegrationHandlers = [...bookingResultIntegrationHandlers];
     this._bookingRejectedIntegrationHandlers = [...bookingRejectedIntegrationHandlers];
     this.registerCrossBcHandlers();
-    this._paymentResultOutcome = this.createPaymentResultOutcome();
+    this._handlePaymentResultFromPayment = this.createHandlePaymentResultFromPayment();
   }
 
-  paymentResultOutcome(): PaymentResultOutcome {
-    return this._paymentResultOutcome;
+  handlePaymentResultFromPayment(): HandlePaymentResultFromPayment {
+    return this._handlePaymentResultFromPayment;
   }
 
   configure(app: Express): void {
@@ -76,11 +76,11 @@ export class BookingModule extends ApplicationModule {
     api.configure(app);
   }
 
-  private createPaymentResultOutcome(): PaymentResultOutcome {
-    const paymentPolicy = new PaymentPolicy(this._bookingRepository);
+  private createHandlePaymentResultFromPayment(): HandlePaymentResultFromPayment {
+    const paymentResult = new PaymentResult(this._bookingRepository);
     const bookingConfirming = new BookingConfirming(this._bookingRepository, this._eventBus);
     const bookingRejecting = new BookingRejecting(this._bookingRepository, this._eventBus);
-    return new PaymentResultOutcome(paymentPolicy, bookingConfirming, bookingRejecting);
+    return new HandlePaymentResultFromPayment(paymentResult, bookingConfirming, bookingRejecting);
   }
 
   private registerCrossBcHandlers(): void {

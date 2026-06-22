@@ -14,6 +14,15 @@ import { RefundRequesting } from './application/usecases/refundRequesting.js';
 import { TransactionAccepting } from './application/usecases/transactionAccepting.js';
 import { TransactionRejecting } from './application/usecases/transactionRejecting.js';
 import type { PaymentAccepted, PaymentRejected, PaymentExpired } from './domain/events/paymentResultEvents.js';
+import {
+  paymentAcceptedIntegrationEvent,
+  paymentExpiredIntegrationEvent,
+  paymentRejectedIntegrationEvent,
+  type PaymentAcceptedIntegrationEvent,
+  type PaymentExpiredIntegrationEvent,
+  type PaymentRejectedIntegrationEvent,
+  type PaymentResultIntegrationEvent,
+} from './integration/paymentResultIntegrationEvent.js';
 import { PaymentCompletion } from './application/policies/paymentCompletion.js';
 import { PaymentExpiration } from './application/policies/paymentExpiration.js';
 import { PaymentRejection } from './application/policies/paymentRejection.js';
@@ -33,6 +42,9 @@ import { requireDependency } from '@/common/utils/requireDependency.js';
 type AcceptedHandler = (event: PaymentAccepted) => void;
 type RejectedHandler = (event: PaymentRejected) => void;
 type ExpiredHandler = (event: PaymentExpired) => void;
+type AcceptedIntegrationHandler = (event: PaymentAcceptedIntegrationEvent) => void;
+type RejectedIntegrationHandler = (event: PaymentRejectedIntegrationEvent) => void;
+type ExpiredIntegrationHandler = (event: PaymentExpiredIntegrationEvent) => void;
 
 export class PaymentModule extends ApplicationModule {
   private readonly _database: Database.Database;
@@ -43,6 +55,9 @@ export class PaymentModule extends ApplicationModule {
   private readonly _acceptedHandlers: AcceptedHandler[];
   private readonly _rejectedHandlers: RejectedHandler[];
   private readonly _expiredHandlers: ExpiredHandler[];
+  private readonly _acceptedIntegrationHandlers: AcceptedIntegrationHandler[];
+  private readonly _rejectedIntegrationHandlers: RejectedIntegrationHandler[];
+  private readonly _expiredIntegrationHandlers: ExpiredIntegrationHandler[];
   private _watcher: PaymentDeadlineWatcher | null = null;
 
   constructor(
@@ -58,6 +73,9 @@ export class PaymentModule extends ApplicationModule {
     this._acceptedHandlers = [...acceptedHandlers];
     this._rejectedHandlers = [...rejectedHandlers];
     this._expiredHandlers = [...expiredHandlers];
+    this._acceptedIntegrationHandlers = [];
+    this._rejectedIntegrationHandlers = [];
+    this._expiredIntegrationHandlers = [];
 
     this._database = database;
     this._paymentRepository = new SqlitePaymentRepository(this._database);
@@ -72,6 +90,11 @@ export class PaymentModule extends ApplicationModule {
       on: (event) => {
         if (event.kind === 'PaymentAccepted') {
           this._acceptedHandlers.forEach((handler) => handler(event));
+          const integrationEvent = paymentAcceptedIntegrationEvent(
+            event.clientReference.value.value,
+            event.amount
+          );
+          this._acceptedIntegrationHandlers.forEach((handler) => handler(integrationEvent));
         }
       },
     });
@@ -79,6 +102,12 @@ export class PaymentModule extends ApplicationModule {
       on: (event) => {
         if (event.kind === 'PaymentRejected') {
           this._rejectedHandlers.forEach((handler) => handler(event));
+          const integrationEvent = paymentRejectedIntegrationEvent(
+            event.clientReference.value.value,
+            event.amount,
+            event.reason.value
+          );
+          this._rejectedIntegrationHandlers.forEach((handler) => handler(integrationEvent));
         }
       },
     });
@@ -86,6 +115,11 @@ export class PaymentModule extends ApplicationModule {
       on: (event) => {
         if (event.kind === 'PaymentExpired') {
           this._expiredHandlers.forEach((handler) => handler(event));
+          const integrationEvent = paymentExpiredIntegrationEvent(
+            event.clientReference.value.value,
+            event.amount
+          );
+          this._expiredIntegrationHandlers.forEach((handler) => handler(integrationEvent));
         }
       },
     });
@@ -116,6 +150,35 @@ export class PaymentModule extends ApplicationModule {
   addExpiredHandler(handler: ExpiredHandler): void {
     requireArgument(handler, 'handler');
     this._expiredHandlers.push(handler);
+  }
+
+  onPaymentAccepted(handler: (event: PaymentAcceptedIntegrationEvent) => void): void {
+    requireArgument(handler, 'handler');
+    this._acceptedIntegrationHandlers.push(handler);
+  }
+
+  onPaymentRejected(handler: (event: PaymentRejectedIntegrationEvent) => void): void {
+    requireArgument(handler, 'handler');
+    this._rejectedIntegrationHandlers.push(handler);
+  }
+
+  onPaymentExpired(handler: (event: PaymentExpiredIntegrationEvent) => void): void {
+    requireArgument(handler, 'handler');
+    this._expiredIntegrationHandlers.push(handler);
+  }
+
+  publish(event: PaymentResultIntegrationEvent): void {
+    switch (event.kind) {
+      case 'PaymentAcceptedIntegrationEvent':
+        this._acceptedIntegrationHandlers.forEach((handler) => handler(event));
+        break;
+      case 'PaymentRejectedIntegrationEvent':
+        this._rejectedIntegrationHandlers.forEach((handler) => handler(event));
+        break;
+      case 'PaymentExpiredIntegrationEvent':
+        this._expiredIntegrationHandlers.forEach((handler) => handler(event));
+        break;
+    }
   }
 
   configure(app: Express): void {

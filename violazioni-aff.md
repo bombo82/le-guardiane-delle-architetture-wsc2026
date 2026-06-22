@@ -9,12 +9,16 @@
 
 | Implementazione | Test AFF totali | Falliti | Passati |
 |---|---|---|---|
-| Java | 33 | **2** | 31 |
-| TypeScript | 34 | **2** | 32 |
+| Java | 34 | **2** | 32 |
+| TypeScript | 37 | **2** | 35 |
 
-Le violazioni si concentrano in **un'unica area**:
+> I test AFF totali includono: cross-BC dependencies, Published Language / ACL, hexagonal architecture, shape rules e domain/application purity per ciascun bounded context.
 
-1. **Confini tra Bounded Context** — `booking` e `giftcard` dipendono direttamente da altri BC.
+Le violazioni rimanenti si concentrano in **un'unica area**:
+
+1. **Confini tra Bounded Context** — `booking` e `giftcard` dipendono ancora direttamente da `payment`.
+
+La relazione `booking ↔ giftcard` è stata disaccoppiata tramite **Published Language** e **Anti-Corruption Layer**.
 
 Layer interni esagonali e shape rules sono ora **tutti a posto**.
 
@@ -90,9 +94,9 @@ giftcard.api.GiftCardApi
 | Regola AFF | Stato | BC coinvolto | Dettaglio |
 |---|---|---|---|
 | `booking` non deve dipendere da `giftcard` | ✅ Risolta | `booking` | La dipendenza è stata eliminata con `GiftCardReference`; gli eventi di dominio di `booking` espongono il riferimento come primitiva. |
-| `booking` non deve dipendere da `payment` | ❌ Fallita | `booking` | 20 violazioni rilevate; dipendenze da eventi, command e porta di `payment`. |
-| `giftcard` non deve dipendere da `booking` | ❌ Fallita | `giftcard` | 10 violazioni rilevate; `giftcard` importa `booking.domain.events.BookingResultEvents` nelle policy e nei servizi. |
-| `giftcard` non deve dipendere da `payment` | ❌ Fallita | `giftcard` | 11 violazioni rilevate; dipendenze da eventi e command di `payment`. |
+| `booking` non deve dipendere da `payment` | ❌ Fallita | `booking` | Dipendenze da eventi, command e porta di `payment`. |
+| `giftcard` non deve dipendere da `booking` | ✅ Risolta | `giftcard` | `giftcard` consuma ora la Published Language `booking.integration.giftcard` attraverso l'ACL `giftcard.application.integration.booking.adapter.BookingResult`. |
+| `giftcard` non deve dipendere da `payment` | ❌ Fallita | `giftcard` | Dipendenze da eventi e command di `payment`. |
 | `payment` non deve dipendere da altri BC | ✅ OK | `payment` | Nessuna dipendenza verso `booking` o `giftcard`. |
 | `common` non deve dipendere dai BC | ✅ OK | `common` | Nessuna dipendenza verso i bounded context. |
 
@@ -102,6 +106,9 @@ giftcard.api.GiftCardApi
 
 > **Nota didattica — dipendenza `booking → giftcard` risolta**  
 > L'import di `giftcard.domain.giftcard.GiftCardId` in `booking` è stato rimosso. `Booking` e i suoi command ora usano `booking.domain.primitive.GiftCardReference`; gli eventi di dominio di `booking` espongono il riferimento come primitiva (`UUID`/`String`), che `giftcard` traduce nel proprio `GiftCardId` solo al proprio confine.
+
+> **Nota didattica — dipendenza `giftcard → booking` risolta con PL + ACL**  
+> `giftcard` non importa più `booking.domain.events.BookingResultEvents`. `booking` espone una Published Language dedicata in `booking.integration.giftcard` (`BookingResultIntegrationEvent` e i suoi sottotipi). `giftcard` accoglie questi eventi in un Anti-Corruption Layer (`giftcard.application.integration.booking.adapter.BookingResult`) che li traduce nei command interni `CreditGiftCard` e `RefundGiftCard`. Questo è lo stesso pattern che verrà applicato a `payment.integration` per risolvere le rimanenti violazioni.
 
 ##### `booking` → `payment`
 
@@ -115,15 +122,6 @@ giftcard.api.GiftCardApi
 | `payment.domain.events.PaymentResultEvents$PaymentRejected` | 3 |
 | `payment.domain.payment.PaymentId` | 3 |
 | `payment.domain.payment.Payment` | 1 |
-
-##### `giftcard` → `booking`
-
-| Tipo importato | Occorrenze |
-|---|---|
-| `booking.domain.events.BookingResultEvents` | 18 |
-| `booking.domain.events.BookingResultEvents$BookingConfirmed` | 2 |
-| `booking.domain.events.BookingResultEvents$BookingRefused` | 2 |
-| `booking.domain.events.BookingResultEvents$BookingRejected` | 2 |
 
 ##### `giftcard` → `payment`
 
@@ -146,7 +144,6 @@ booking
   → payment.domain.payment.Payment             (1 occorrenza)
 
 giftcard
-  → booking.domain.events.BookingResultEvents  (18 + 6 occorrenze sui sottotipi)
   → payment.domain.events.PaymentResultEvents  (8 + 2 occorrenze sul sottotipo)
   → payment.application.commands.RequestPayment (4 occorrenze)
   → payment.domain.payment.PaymentId           (2 occorrenze)
@@ -158,12 +155,18 @@ giftcard
 - `booking.application.policies.BookingRefundRequestPolicy`
 - `booking.application.policies.PaymentPolicy`
 - `giftcard.application.policies.ConfirmTopUpPolicy`
-- `giftcard.domain.policies.CreditGiftCardPolicy`
-- `giftcard.domain.policies.RefundGiftCardPolicy`
-- `giftcard.domain.policies.TopUpPaymentRequestPolicy`
-- `giftcard.application.services.BookingResultCrediting`
-- `giftcard.application.services.BookingResultRefunding`
+- `giftcard.application.policies.TopUpPaymentRequestPolicy`
 - `giftcard.application.services.TopUpConfirmation`
+
+#### File del nuovo confine `booking → giftcard`
+
+```text
+booking.integration.giftcard.BookingResultIntegrationEvent
+  → booking.publish(BookingConfirmed / BookingRefused / BookingRejected)
+  → giftcard.application.integration.booking.adapter.BookingResult
+    → CreditGiftCard / RefundGiftCard
+  → giftcard.application.integration.booking.handlers.CreditFromBooking / RefundFromBooking
+```
 
 ---
 
@@ -187,14 +190,21 @@ giftcard
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
-│                     VIOLAZIONI CROSS-BC                         │
+│                     CONFINI CROSS-BC                            │
 ├─────────────────────────────────────────────────────────────────┤
-│  booking ──────────────┐                                        │
-│  giftcard ─────────────┼──► payment (eventi, command, port)     │
-│                        │                                        │
-│  giftcard ─────────────┘──► booking (eventi)                    │
 │                                                                 │
-│  payment  ───► nessuna dipendenza verso altri BC  ✅            │
+│   booking ──────[PL]──────► giftcard                            │
+│   (BookingResultIntegrationEvent)                               │
+│                                                                 │
+│   giftcard ─────[ACL]──────► booking.integration.giftcard       │
+│   (adapter.BookingResult)                                       │
+│                              ✅ Risolto                         │
+│                                                                 │
+│   booking ────────────────► payment (eventi, command, port)     │
+│   giftcard ───────────────► payment (eventi, command)           │
+│                              ❌ Da risolvere                    │
+│                                                                 │
+│   payment  ───► nessuna dipendenza verso altri BC  ✅           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

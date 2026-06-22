@@ -184,12 +184,83 @@ L'approccio con `GiftCardReference` è stato scelto come compromesso tra **puliz
 
 ---
 
-## 5. Cosa non è stato ancora risolto (e perché)
+## 5. Decoupling completo tra `booking` e `giftcard` con Published Language e ACL
 
-Le violazioni rimaste attive sul branch `solutions` riguardano altre dipendenze cross-BC:
+### Problema
+
+Dopo l'introduzione di `GiftCardReference`, la dipendenza `booking → giftcard` era risolta, ma `giftcard` dipendeva ancora direttamente da `booking.domain.events.BookingResultEvents`:
+
+```text
+giftcard.application.policies.CreditGiftCardPolicy  → booking.domain.events.BookingResultEvents
+giftcard.application.policies.RefundGiftCardPolicy  → booking.domain.events.BookingResultEvents
+giftcard.application.integration.booking.handlers.CreditFromBooking → booking.domain.events.BookingResultEvents
+giftcard.application.integration.booking.handlers.RefundFromBooking  → booking.domain.events.BookingResultEvents
+```
+
+Questo violava il confine cross-BC: `giftcard` conosceva il modello interno di `booking`.
+
+### Soluzione adottata
+
+Sono stati introdotti **Published Language** lato `booking` e **Anti-Corruption Layer** lato `giftcard`:
+
+1. **Published Language di `booking`** in `booking.integration.giftcard`:
+   - `BookingResultIntegrationEvent` (sealed interface / union type);
+   - `BookingCompletedIntegrationEvent`, `BookingRefusedIntegrationEvent`, `BookingRejectedIntegrationEvent`.
+   - I campi usano solo tipi stabili (`UUID`/`String`, `Money`).
+
+2. **Pubblicazione degli eventi di integrazione** in `BookingModule`:
+   - `BookingModule` continua a pubblicare eventi interni sul proprio event bus;
+   - quando invoca handler cross-BC, traduce `BookingConfirmed`/`BookingRefused`/`BookingRejected` nei corrispondenti eventi di integrazione.
+
+3. **Anti-Corruption Layer** in `giftcard.application.integration.booking`:
+   - `adapter.BookingResult` traduce `BookingResultIntegrationEvent` in `CreditGiftCard`;
+   - traduce `BookingRejectedIntegrationEvent` in `RefundGiftCard`.
+   - È l'unico punto di `giftcard` che conosce il contratto pubblicato da `booking`.
+   - `handlers.CreditFromBooking` e `handlers.RefundFromBooking` orchestrano l'adapter e i rispettivi use case.
+
+4. **Rimozione delle vecchie policy** `CreditGiftCardPolicy` e `RefundGiftCardPolicy`, che non potevano più implementare `Policy` (gli eventi di integrazione non estendono `Event`) e il cui ruolo era in realtà quello di adapter/ACL, non di policy decisionale.
+
+```text
+booking
+  └── integration/giftcard
+      └── BookingResultIntegrationEvent          <- Published Language
+
+giftcard
+  └── application/integration/booking
+      ├── adapter
+      │   └── BookingResult                         <- ACL
+      │       ├── adapt(BookingCompleted) → CreditGiftCard
+      │       ├── adapt(BookingRefused)   → CreditGiftCard
+      │       └── adaptRejected(BookingRejected) → RefundGiftCard
+      └── handlers
+          ├── CreditFromBooking                     <- usa BookingResult + GiftCardCrediting
+          └── RefundFromBooking                     <- usa BookingResult + GiftCardRefunding
+```
+
+### Motivazione
+
+- **Separazione tra eventi interni e pubblicati**: il modello interno di `booking` può evolvere senza impattare `giftcard`, purché la Published Language resti stabile.
+- **ACL esplicito**: `adapter.BookingResult` isola il modello di `giftcard` dalle convenzioni di `booking`. Se `booking` cambia il nome degli eventi interni o aggiunge campi, solo l'adapter e il punto di pubblicazione in `BookingModule` vengono toccati.
+- **Nessuna forzatura del pattern `Policy`**: gli eventi di integrazione non sono eventi di dominio (non hanno `aggregateId` di `booking`), quindi non implementano `Policy`. L'ACL è una classe di mapping, non una policy.
+- **Pilot per `payment`**: lo stesso pattern verrà applicato per risolvere `booking → payment` e `giftcard → payment`, introducendo `payment.integration` unico e ACL nei due BC downstream.
+
+### Dipendenze rimanenti
+
+Dopo questa modifica:
+
+- ✅ `booking` non dipende più da `giftcard`.
+- ✅ `giftcard` non dipende più da `booking`.
+- ❌ `booking` dipende ancora da `payment`.
+- ❌ `giftcard` dipende ancora da `payment`.
+
+---
+
+## 6. Cosa non è stato ancora risolto (e perché)
+
+Le uniche violazioni rimaste attive sul branch `solutions` riguardano `payment`:
 
 - `booking` dipende da `payment` (`BookingPaymentRequestPolicy`, `BookingRefundRequestPolicy`, `PaymentPolicy`, `PaymentResultOutcome`).
-- `giftcard` dipende da `payment` (`ConfirmTopUpPolicy`, `TopUpPaymentRequestPolicy`, `TopUpConfirmation`) e da `booking` (`CreditGiftCardPolicy`, `RefundGiftCardPolicy`, `BookingResultCrediting`, `BookingResultRefunding`).
+- `giftcard` dipende da `payment` (`ConfirmTopUpPolicy`, `TopUpPaymentRequestPolicy`, `TopUpConfirmation`).
 
 ### Perché non è stato risolto
 

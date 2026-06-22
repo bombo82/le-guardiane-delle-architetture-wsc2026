@@ -6,7 +6,10 @@ import Database from 'better-sqlite3';
 import { BookingModule } from './booking/module.js';
 import { BookingPlaced } from './booking/domain/events/bookingPlaced.js';
 import type { BookingResultEvent } from './booking/domain/events/bookingResultEvents.js';
-import type { BookingRejected } from './booking/domain/events/bookingResultEvents.js';
+import type {
+  BookingRejectedIntegrationEvent,
+  BookingResultIntegrationEvent,
+} from './booking/integration/giftcard/bookingResultIntegrationEvent.js';
 import { BookingPaymentRequestPolicy } from './booking/application/policies/bookingPaymentRequestPolicy.js';
 import { BookingRefundRequestPolicy } from './booking/application/policies/bookingRefundRequestPolicy.js';
 import { GiftCardModule } from './giftcard/module.js';
@@ -56,22 +59,27 @@ export class Application {
     };
 
     const bookingConfirmedHandler = (event: BookingResultEvent): void => {
-      this._giftCardModule.bookingResultCrediting().handleBookingResults(event);
       if (event.kind === 'BookingRefused') {
         const refundCommand: RefundTransaction = bookingRefundRequestPolicy.evaluate(event);
         this._paymentModule.refundRequesting().invoke(refundCommand);
       }
     };
 
-    const bookingRejectedHandler = (event: BookingRejected): void => {
-      this._giftCardModule.bookingResultRefunding().handleBookingResults(event);
+    const bookingResultIntegrationHandler = (event: BookingResultIntegrationEvent): void => {
+      this._giftCardModule.creditFromBooking().handle(event);
+    };
+
+    const bookingRejectedIntegrationHandler = (event: BookingRejectedIntegrationEvent): void => {
+      this._giftCardModule.refundFromBooking().handle(event);
     };
 
     this._bookingModule = new BookingModule(
       bookingDatabase,
       [bookingPlacedHandler],
       [bookingConfirmedHandler],
-      [bookingRejectedHandler]
+      [],
+      [bookingResultIntegrationHandler],
+      [bookingRejectedIntegrationHandler]
     );
 
     this._paymentModule.addAcceptedHandler((event) => this._bookingModule.paymentResultOutcome().handlePaymentResults(event));

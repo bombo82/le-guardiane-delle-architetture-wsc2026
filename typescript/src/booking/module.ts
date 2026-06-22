@@ -11,6 +11,13 @@ import { BookingPlacing } from './application/usecases/bookingPlacing.js';
 import { BookingRejecting } from './application/usecases/bookingRejecting.js';
 import { BookingPlaced } from './domain/events/bookingPlaced.js';
 import type { BookingResultEvent, BookingRejected } from './domain/events/bookingResultEvents.js';
+import {
+  bookingCompletedIntegrationEvent,
+  bookingRefusedIntegrationEvent,
+  bookingRejectedIntegrationEvent,
+  type BookingRejectedIntegrationEvent,
+  type BookingResultIntegrationEvent,
+} from './integration/giftcard/bookingResultIntegrationEvent.js';
 import { PaymentPolicy } from './application/policies/paymentPolicy.js';
 import { InMemoryBookingEventBus } from './infrastructure/inMemoryBookingEventBus.js';
 import { SqliteBookingRepository } from './infrastructure/sqliteBookingRepository.js';
@@ -19,6 +26,8 @@ import { requireDependency } from '@/common/utils/requireDependency.js';
 export type BookingPlacedHandler = (event: BookingPlaced) => void;
 export type BookingResultHandler = (event: BookingResultEvent) => void;
 export type BookingRejectedHandler = (event: BookingRejected) => void;
+export type BookingResultIntegrationHandler = (event: BookingResultIntegrationEvent) => void;
+export type BookingRejectedIntegrationHandler = (event: BookingRejectedIntegrationEvent) => void;
 
 export class BookingModule extends ApplicationModule {
   private readonly _database: Database.Database;
@@ -28,12 +37,16 @@ export class BookingModule extends ApplicationModule {
   private readonly _bookingPlacedHandlers: BookingPlacedHandler[];
   private readonly _bookingConfirmedHandlers: BookingResultHandler[];
   private readonly _bookingRejectedHandlers: BookingRejectedHandler[];
+  private readonly _bookingResultIntegrationHandlers: BookingResultIntegrationHandler[];
+  private readonly _bookingRejectedIntegrationHandlers: BookingRejectedIntegrationHandler[];
 
   constructor(
     database: Database.Database,
     bookingPlacedHandlers: BookingPlacedHandler[] = [],
     bookingConfirmedHandlers: BookingResultHandler[] = [],
-    bookingRejectedHandlers: BookingRejectedHandler[] = []
+    bookingRejectedHandlers: BookingRejectedHandler[] = [],
+    bookingResultIntegrationHandlers: BookingResultIntegrationHandler[] = [],
+    bookingRejectedIntegrationHandlers: BookingRejectedIntegrationHandler[] = []
   ) {
     super();
 
@@ -45,6 +58,8 @@ export class BookingModule extends ApplicationModule {
     this._bookingPlacedHandlers = [...bookingPlacedHandlers];
     this._bookingConfirmedHandlers = [...bookingConfirmedHandlers];
     this._bookingRejectedHandlers = [...bookingRejectedHandlers];
+    this._bookingResultIntegrationHandlers = [...bookingResultIntegrationHandlers];
+    this._bookingRejectedIntegrationHandlers = [...bookingRejectedIntegrationHandlers];
     this.registerCrossBcHandlers();
     this._paymentResultOutcome = this.createPaymentResultOutcome();
   }
@@ -101,6 +116,33 @@ export class BookingModule extends ApplicationModule {
         on: (event) => {
           if (event.kind === 'BookingRejected') {
             handler(event);
+          }
+        },
+      });
+    }
+
+    for (const handler of this._bookingResultIntegrationHandlers) {
+      this._eventBus.subscribe('BookingConfirmed', {
+        on: (event) => {
+          if (event.kind === 'BookingConfirmed') {
+            handler(bookingCompletedIntegrationEvent(event.giftCardReference, event.amount));
+          }
+        },
+      });
+      this._eventBus.subscribe('BookingRefused', {
+        on: (event) => {
+          if (event.kind === 'BookingRefused') {
+            handler(bookingRefusedIntegrationEvent(event.giftCardReference, event.amount));
+          }
+        },
+      });
+    }
+
+    for (const handler of this._bookingRejectedIntegrationHandlers) {
+      this._eventBus.subscribe('BookingRejected', {
+        on: (event) => {
+          if (event.kind === 'BookingRejected') {
+            handler(bookingRejectedIntegrationEvent(event.giftCardReference, event.amount));
           }
         },
       });

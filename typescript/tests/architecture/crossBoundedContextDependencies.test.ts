@@ -5,23 +5,29 @@ import { projectFiles } from 'archunit';
 
 vi.setConfig({ testTimeout: 20000 });
 
+// Matcha tutto ciò che sta sotto src/<bc>/ per i BC indicati,
+// escludendo il sotto-package integration che rappresenta la Published Language pubblica.
+function otherBoundedContexts(bcs: string[]): RegExp {
+  return new RegExp(`src\\/(${bcs.join('|')})\\/(?!integration(\\/|$)).*`);
+}
+
 describe('CrossBoundedContextDependencies', () => {
   it('booking must not depend on other bounded contexts', async () => {
     const rule = projectFiles()
       .inFolder('src/booking/**')
       .shouldNot()
       .dependOnFiles()
-      .inFolder(/src\/(giftcard|payment)/);
+      .inFolder(otherBoundedContexts(['giftcard', 'payment']));
 
     await expect(rule).toPassAsync();
   });
 
-  it('giftCard must not depend on other bounded contexts', async () => {
+  it('giftcard must not depend on other bounded contexts', async () => {
     const rule = projectFiles()
       .inFolder('src/giftcard/**')
       .shouldNot()
       .dependOnFiles()
-      .inFolder(/src\/(booking|payment)/);
+      .inFolder(otherBoundedContexts(['booking', 'payment']));
 
     await expect(rule).toPassAsync();
   });
@@ -31,7 +37,7 @@ describe('CrossBoundedContextDependencies', () => {
       .inFolder('src/payment/**')
       .shouldNot()
       .dependOnFiles()
-      .inFolder(/src\/(booking|giftcard)/);
+      .inFolder(otherBoundedContexts(['booking', 'giftcard']));
 
     await expect(rule).toPassAsync();
   });

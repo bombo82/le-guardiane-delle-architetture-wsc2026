@@ -5,9 +5,9 @@ import Database from 'better-sqlite3';
 import { ApplicationModule } from '@/common/module/applicationModule.js';
 import { GiftCardApi } from './api/giftCardApi.js';
 import { GiftCardQueryService } from './application/query/giftCardQueryService.js';
-import { BookingResultCrediting } from './application/services/bookingResultCrediting.js';
-import { BookingResultRefunding } from './application/services/bookingResultRefunding.js';
 import { TopUpConfirmation } from './application/services/topUpConfirmation.js';
+import { CreditFromBooking } from './application/integration/booking/handlers/creditFromBooking.js';
+import { RefundFromBooking } from './application/integration/booking/handlers/refundFromBooking.js';
 import { GiftCardCrediting } from './application/usecases/giftCardCrediting.js';
 import { GiftCardIssuing } from './application/usecases/giftCardIssuing.js';
 import { GiftCardRefunding } from './application/usecases/giftCardRefunding.js';
@@ -15,9 +15,8 @@ import { TopUpConfirming } from './application/usecases/topUpConfirming.js';
 import { TopUpRequesting } from './application/usecases/topUpRequesting.js';
 import { GiftCardTopUpRequested } from './domain/events/giftCardTopUpRequested.js';
 import { ConfirmTopUpPolicy } from './application/policies/confirmTopUpPolicy.js';
-import { CreditGiftCardPolicy } from './application/policies/creditGiftCardPolicy.js';
-import { RefundGiftCardPolicy } from './application/policies/refundGiftCardPolicy.js';
 import { TopUpPaymentRequestPolicy } from './application/policies/topUpPaymentRequestPolicy.js';
+import { BookingResult } from './application/integration/booking/adapter/bookingResult.js';
 import { InMemoryGiftCardEventBus } from './infrastructure/inMemoryGiftCardEventBus.js';
 import { SqliteGiftCardRepository } from './infrastructure/sqliteGiftCardRepository.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
@@ -28,8 +27,9 @@ export class GiftCardModule extends ApplicationModule {
   private readonly _giftCardRepository: SqliteGiftCardRepository;
   private readonly _eventBus: InMemoryGiftCardEventBus;
   private readonly _topUpConfirmation: TopUpConfirmation;
-  private readonly _bookingResultCrediting: BookingResultCrediting;
-  private readonly _bookingResultRefunding: BookingResultRefunding;
+  private readonly _bookingResult: BookingResult;
+  private readonly _creditFromBooking: CreditFromBooking;
+  private readonly _refundFromBooking: RefundFromBooking;
   private readonly _topUpPaymentRequestPolicy: TopUpPaymentRequestPolicy;
   private readonly _topUpRequestedHandlers: TopUpRequestedHandler[];
 
@@ -42,10 +42,11 @@ export class GiftCardModule extends ApplicationModule {
     this._database = database;
     this._giftCardRepository = new SqliteGiftCardRepository(this._database);
     this._eventBus = new InMemoryGiftCardEventBus((task) => task());
+    this._bookingResult = new BookingResult();
     this.registerCrossBcHandlers();
     this._topUpConfirmation = this.createTopUpConfirmation();
-    this._bookingResultCrediting = this.createBookingResultCrediting();
-    this._bookingResultRefunding = this.createBookingResultRefunding();
+    this._creditFromBooking = this.createCreditFromBooking();
+    this._refundFromBooking = this.createRefundFromBooking();
     this._topUpPaymentRequestPolicy = new TopUpPaymentRequestPolicy();
   }
 
@@ -55,12 +56,12 @@ export class GiftCardModule extends ApplicationModule {
     return this._topUpConfirmation;
   }
 
-  bookingResultCrediting(): BookingResultCrediting {
-    return this._bookingResultCrediting;
+  creditFromBooking(): CreditFromBooking {
+    return this._creditFromBooking;
   }
 
-  bookingResultRefunding(): BookingResultRefunding {
-    return this._bookingResultRefunding;
+  refundFromBooking(): RefundFromBooking {
+    return this._refundFromBooking;
   }
 
   topUpPaymentRequestPolicy(): TopUpPaymentRequestPolicy {
@@ -94,15 +95,13 @@ export class GiftCardModule extends ApplicationModule {
     return new TopUpConfirmation(policy, useCase);
   }
 
-  private createBookingResultCrediting(): BookingResultCrediting {
-    const policy = new CreditGiftCardPolicy();
+  private createCreditFromBooking(): CreditFromBooking {
     const useCase = new GiftCardCrediting(this._giftCardRepository);
-    return new BookingResultCrediting(policy, useCase);
+    return new CreditFromBooking(this._bookingResult, useCase);
   }
 
-  private createBookingResultRefunding(): BookingResultRefunding {
-    const policy = new RefundGiftCardPolicy();
+  private createRefundFromBooking(): RefundFromBooking {
     const useCase = new GiftCardRefunding(this._giftCardRepository);
-    return new BookingResultRefunding(policy, useCase);
+    return new RefundFromBooking(this._bookingResult, useCase);
   }
 }

@@ -255,12 +255,102 @@ Dopo questa modifica:
 
 ---
 
-## 6. Cosa non è stato ancora risolto (e perché)
+## 6. Decoupling del flusso eventi `payment → giftcard` con Published Language e ACL
 
-Le uniche violazioni rimaste attive sul branch `solutions` riguardano `payment`:
+### Problema
 
-- `booking` dipende da `payment` (`BookingPaymentRequestPolicy`, `BookingRefundRequestPolicy`, `PaymentPolicy`, `PaymentResultOutcome`).
-- `giftcard` dipende da `payment` (`ConfirmTopUpPolicy`, `TopUpPaymentRequestPolicy`, `TopUpConfirmation`).
+`giftcard` dipendeva direttamente dagli eventi interni di `payment` per confermare una ricarica:
+
+```text
+giftcard.application.policies.ConfirmTopUpPolicy      → payment.domain.events.PaymentResultEvents
+giftcard.application.services.TopUpConfirmation       → payment.domain.events.PaymentResultEvents
+```
+
+Questo violava il confine cross-BC: `giftcard` conosceva il modello interno di `payment`.
+
+### Soluzione adottata
+
+Sono stati introdotti **Published Language** lato `payment` e **Anti-Corruption Layer** lato `giftcard`:
+
+1. **Published Language di `payment`** in `payment.integration`:
+   - `PaymentResultIntegrationEvent` (sealed interface / union type);
+   - `PaymentAcceptedIntegrationEvent`, `PaymentRejectedIntegrationEvent`, `PaymentExpiredIntegrationEvent`.
+   - I campi usano solo tipi stabili (`UUID`/`String`, `Money`).
+
+2. **Pubblicazione degli eventi di integrazione** in `PaymentModule`:
+   - `PaymentModule` continua a pubblicare eventi interni sul proprio event bus;
+   - quando riceve `PaymentAccepted`/`PaymentRejected`/`PaymentExpired`, traduce ciascuno nel corrispondente evento di integrazione e lo notifica agli handler cross-BC registrati (`onPaymentAccepted`, `onPaymentRejected`, `onPaymentExpired`).
+
+3. **Anti-Corruption Layer** in `giftcard.application.integration.payment`:
+   - `adapter.PaymentResult` traduce `PaymentResultIntegrationEvent` in `ConfirmTopUp` (solo per `PaymentAcceptedIntegrationEvent`);
+   - `handlers.ConfirmTopUpFromPayment` orchestra l'adapter e il caso d'uso `TopUpConfirming`.
+   - È l'unico punto di `giftcard` che conosce il contratto pubblicato da `payment`.
+
+4. **Rimozione delle vecchie policy/servizio** `ConfirmTopUpPolicy` e `TopUpConfirmation`, che non potevano più restare nel dominio/application interni di `giftcard` perché importavano direttamente `payment`.
+
+```text
+payment
+  └── integration
+      └── PaymentResultIntegrationEvent          <- Published Language generica
+
+giftcard
+  └── application/integration/payment
+      ├── adapter
+      │   └── PaymentResult                       <- ACL
+      │       └── adapt(PaymentAccepted) → ConfirmTopUp
+      └── handlers
+          └── ConfirmTopUpFromPayment             <- usa PaymentResult + TopUpConfirming
+```
+
+### Motivazione
+
+- **Published Language stabile e riutilizzabile**: `payment.integration.PaymentResultIntegrationEvent` è un contratto generico che può essere consumato da qualsiasi BC downstream (`giftcard` e `booking`) senza esporre il modello interno di `payment`.
+- **ACL esplicito**: ciascun BC downstream ha il proprio adapter (`giftcard.application.integration.payment.adapter.PaymentResult` e `booking.application.integration.payment.adapter.PaymentResult`) che isola il proprio modello dalle convenzioni di `payment`. Se `payment` cambia nome o struttura degli eventi interni, solo il punto di pubblicazione in `PaymentModule` e gli ACL vengono toccati.
+- **Nessuna forzatura del pattern `Policy`**: gli eventi di integrazione non sono eventi di dominio di `payment` (non hanno `aggregateId` di `payment`), quindi non implementano `Policy`. L'handler cross-BC è un semplice orchestratore event-driven.
+
+### Estensione del pattern a `booking`
+
+La stessa `PaymentResultIntegrationEvent` è stata consumata anche da `booking`, introducendo:
+
+- `booking.application.integration.payment.adapter.PaymentResult` — traduce `PaymentAcceptedIntegrationEvent`/`PaymentRejectedIntegrationEvent` in `ConfirmBooking`/`RejectBooking`. A differenza dell'adapter di `giftcard`, qui è necessario caricare il booking dal repository perché il `clientReference` dell'evento di pagamento è l'ID della prenotazione.
+- `booking.application.integration.payment.handlers.HandlePaymentResultFromPayment` — orchestra l'adapter e i casi d'uso `BookingConfirming`/`BookingRejecting`.
+
+Sono stati rimossi `PaymentPolicy` e `PaymentResultOutcome`, che importavano direttamente `payment.domain.events.PaymentResultEvents`.
+
+```text
+payment
+  └── integration
+      └── PaymentResultIntegrationEvent          <- Published Language generica
+
+booking
+  └── application/integration/payment
+      ├── adapter
+      │   └── PaymentResult                       <- ACL
+      │       ├── adapt(PaymentAccepted) → ConfirmBooking
+      │       └── adapt(PaymentRejected) → RejectBooking
+      └── handlers
+          └── HandlePaymentResultFromPayment      <- usa PaymentResult + BookingConfirming/Rejecting
+```
+
+### Dipendenze rimanenti
+
+Dopo questa modifica:
+
+- ✅ `booking` non dipende più da `giftcard`.
+- ✅ `giftcard` non dipende più da `booking`.
+- ✅ `giftcard` non dipende più dagli eventi interni di `payment`.
+- ✅ `booking` non dipende più dagli eventi interni di `payment`.
+- ❌ `booking` dipende ancora da `payment` sul flusso **command** (`BookingPaymentRequestPolicy`, `BookingRefundRequestPolicy`).
+- ❌ `giftcard` dipende ancora da `payment` sul flusso **command** (`TopUpPaymentRequestPolicy`).
+
+---
+
+## 7. Cosa non è stato ancora risolto (e perché)
+
+Le uniche violazioni rimaste attive sul branch `solutions` riguardano il flusso **command** verso `payment`:
+
+- `booking` dipende da `payment` (`BookingPaymentRequestPolicy`, `BookingRefundRequestPolicy`).
+- `giftcard` dipende da `payment` (`TopUpPaymentRequestPolicy`).
 
 ### Perché non è stato risolto
 
@@ -274,6 +364,6 @@ Questo punto viene approfondito nelle soluzioni finali del workshop.
 
 ---
 
-## 6. Evoluzioni future
+## 8. Evoluzioni future
 
 Il branch `feature/usecase-aff-rule` contiene un'ulteriore evoluzione: una regola `useCasesMustImplementUseCase` che verifica che tutte le classi in `application/usecases` implementino l'interfaccia `UseCase`. Quella regola rileva che `PaymentExpiring`, `TransactionAccepting` e `TransactionRejecting` sono in realtà `EventSubscriber`, non use case: apre il discorso su dove collocare gli orchestratori event-driven e su come distinguere use case, servizi applicativi e event handler. Il tema verrà affrontato in un momento successivo del workshop.

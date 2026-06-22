@@ -82,13 +82,13 @@ export class Application {
       [bookingRejectedIntegrationHandler]
     );
 
-    this._paymentModule.addAcceptedHandler((event) => this._bookingModule.paymentResultOutcome().handlePaymentResults(event));
-    this._paymentModule.addRejectedHandler((event) => this._bookingModule.paymentResultOutcome().handlePaymentResults(event));
-    this._paymentModule.addExpiredHandler((event) => this._bookingModule.paymentResultOutcome().handlePaymentResults(event));
+    this._paymentModule.onPaymentAccepted((event) => this._bookingModule.handlePaymentResultFromPayment().handle(event));
+    this._paymentModule.onPaymentRejected((event) => this._bookingModule.handlePaymentResultFromPayment().handle(event));
+    this._paymentModule.onPaymentExpired((event) => this._bookingModule.handlePaymentResultFromPayment().handle(event));
 
-    this._paymentModule.addAcceptedHandler((event) => this._giftCardModule.topUpConfirmation().handlePaymentResults(event));
-    this._paymentModule.addRejectedHandler((event) => this._giftCardModule.topUpConfirmation().handlePaymentResults(event));
-    this._paymentModule.addExpiredHandler((event) => this._giftCardModule.topUpConfirmation().handlePaymentResults(event));
+    this._paymentModule.onPaymentAccepted((event) => this._giftCardModule.confirmTopUpFromPayment().handle(event));
+    this._paymentModule.onPaymentRejected((event) => this._giftCardModule.confirmTopUpFromPayment().handle(event));
+    this._paymentModule.onPaymentExpired((event) => this._giftCardModule.confirmTopUpFromPayment().handle(event));
   }
 
   configure(app: Express): void {

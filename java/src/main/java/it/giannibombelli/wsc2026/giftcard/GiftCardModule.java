@@ -8,14 +8,14 @@ import it.giannibombelli.wsc2026.common.application.events.EventSubscriber;
 import it.giannibombelli.wsc2026.common.module.ApplicationModule;
 import it.giannibombelli.wsc2026.giftcard.api.GiftCardApi;
 import it.giannibombelli.wsc2026.giftcard.application.query.GiftCardQueryService;
-import it.giannibombelli.wsc2026.giftcard.application.services.TopUpConfirmation;
 import it.giannibombelli.wsc2026.giftcard.application.integration.booking.adapter.BookingResult;
 import it.giannibombelli.wsc2026.giftcard.application.integration.booking.handlers.CreditFromBooking;
 import it.giannibombelli.wsc2026.giftcard.application.integration.booking.handlers.RefundFromBooking;
+import it.giannibombelli.wsc2026.giftcard.application.integration.payment.adapter.PaymentResult;
+import it.giannibombelli.wsc2026.giftcard.application.integration.payment.handlers.ConfirmTopUpFromPayment;
 import it.giannibombelli.wsc2026.giftcard.application.usecases.*;
 import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardEvent;
 import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardTopUpRequested;
-import it.giannibombelli.wsc2026.giftcard.application.policies.ConfirmTopUpPolicy;
 import it.giannibombelli.wsc2026.giftcard.application.policies.TopUpPaymentRequestPolicy;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.InMemoryGiftCardEventBus;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.SqliteGiftCardRepository;
@@ -27,7 +27,8 @@ import java.util.function.Consumer;
 public final class GiftCardModule extends ApplicationModule {
     private final SqliteGiftCardRepository giftCardRepository;
     private final EventBus<GiftCardEvent> eventBus;
-    private final TopUpConfirmation topUpConfirmation;
+    private final PaymentResult paymentResult;
+    private final ConfirmTopUpFromPayment confirmTopUpFromPayment;
     private final BookingResult bookingResult;
     private final CreditFromBooking creditFromBooking;
     private final RefundFromBooking refundFromBooking;
@@ -46,15 +47,16 @@ public final class GiftCardModule extends ApplicationModule {
         this.eventBus = new InMemoryGiftCardEventBus(Runnable::run);
         this.topUpRequestedHandlers = topUpRequestedHandlers;
         this.bookingResult = new BookingResult();
+        this.paymentResult = new PaymentResult();
         registerCrossBcHandlers();
-        topUpConfirmation = createTopUpConfirmation();
+        confirmTopUpFromPayment = createConfirmTopUpFromPayment();
         creditFromBooking = createCreditFromBooking();
         refundFromBooking = createRefundFromBooking();
         topUpPaymentRequestPolicy = new TopUpPaymentRequestPolicy();
     }
 
-    public TopUpConfirmation topUpConfirmation() {
-        return topUpConfirmation;
+    public ConfirmTopUpFromPayment confirmTopUpFromPayment() {
+        return confirmTopUpFromPayment;
     }
 
     public CreditFromBooking creditFromBooking() {
@@ -83,10 +85,9 @@ public final class GiftCardModule extends ApplicationModule {
             eventBus.subscribe(GiftCardTopUpRequested.class, (EventSubscriber<GiftCardTopUpRequested>) handler::accept));
     }
 
-    private TopUpConfirmation createTopUpConfirmation() {
-        ConfirmTopUpPolicy confirmTopUpPolicy = new ConfirmTopUpPolicy();
+    private ConfirmTopUpFromPayment createConfirmTopUpFromPayment() {
         TopUpConfirming topUpConfirming = new TopUpConfirming(giftCardRepository);
-        return new TopUpConfirmation(confirmTopUpPolicy, topUpConfirming);
+        return new ConfirmTopUpFromPayment(paymentResult, topUpConfirming);
     }
 
     private CreditFromBooking createCreditFromBooking() {

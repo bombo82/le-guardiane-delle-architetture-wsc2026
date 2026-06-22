@@ -83,13 +83,13 @@ public final class Application extends ApplicationModule {
             List.of(bookingRejectedIntegrationHandler)
         );
 
-        paymentModule.addAcceptedHandler(bookingModule.paymentResultOutcome()::handlePaymentResults);
-        paymentModule.addRejectedHandler(bookingModule.paymentResultOutcome()::handlePaymentResults);
-        paymentModule.addExpiredHandler(bookingModule.paymentResultOutcome()::handlePaymentResults);
+        paymentModule.addAcceptedIntegrationHandler(bookingModule.handlePaymentResultFromPayment()::handle);
+        paymentModule.addRejectedIntegrationHandler(bookingModule.handlePaymentResultFromPayment()::handle);
+        paymentModule.addExpiredIntegrationHandler(bookingModule.handlePaymentResultFromPayment()::handle);
 
-        paymentModule.addAcceptedHandler(giftCardModule.topUpConfirmation()::handlePaymentResults);
-        paymentModule.addRejectedHandler(giftCardModule.topUpConfirmation()::handlePaymentResults);
-        paymentModule.addExpiredHandler(giftCardModule.topUpConfirmation()::handlePaymentResults);
+        paymentModule.addAcceptedIntegrationHandler(giftCardModule.confirmTopUpFromPayment()::handle);
+        paymentModule.addRejectedIntegrationHandler(giftCardModule.confirmTopUpFromPayment()::handle);
+        paymentModule.addExpiredIntegrationHandler(giftCardModule.confirmTopUpFromPayment()::handle);
     }
 
     @Override

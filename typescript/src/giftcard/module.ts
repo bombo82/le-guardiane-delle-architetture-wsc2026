@@ -5,18 +5,18 @@ import Database from 'better-sqlite3';
 import { ApplicationModule } from '@/common/module/applicationModule.js';
 import { GiftCardApi } from './api/giftCardApi.js';
 import { GiftCardQueryService } from './application/query/giftCardQueryService.js';
-import { TopUpConfirmation } from './application/services/topUpConfirmation.js';
 import { CreditFromBooking } from './application/integration/booking/handlers/creditFromBooking.js';
 import { RefundFromBooking } from './application/integration/booking/handlers/refundFromBooking.js';
+import { ConfirmTopUpFromPayment } from './application/integration/payment/handlers/confirmTopUpFromPayment.js';
 import { GiftCardCrediting } from './application/usecases/giftCardCrediting.js';
 import { GiftCardIssuing } from './application/usecases/giftCardIssuing.js';
 import { GiftCardRefunding } from './application/usecases/giftCardRefunding.js';
 import { TopUpConfirming } from './application/usecases/topUpConfirming.js';
 import { TopUpRequesting } from './application/usecases/topUpRequesting.js';
 import { GiftCardTopUpRequested } from './domain/events/giftCardTopUpRequested.js';
-import { ConfirmTopUpPolicy } from './application/policies/confirmTopUpPolicy.js';
 import { TopUpPaymentRequestPolicy } from './application/policies/topUpPaymentRequestPolicy.js';
 import { BookingResult } from './application/integration/booking/adapter/bookingResult.js';
+import { PaymentResult } from './application/integration/payment/adapter/paymentResult.js';
 import { InMemoryGiftCardEventBus } from './infrastructure/inMemoryGiftCardEventBus.js';
 import { SqliteGiftCardRepository } from './infrastructure/sqliteGiftCardRepository.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
@@ -26,10 +26,11 @@ export type TopUpRequestedHandler = (event: GiftCardTopUpRequested) => void;
 export class GiftCardModule extends ApplicationModule {
   private readonly _giftCardRepository: SqliteGiftCardRepository;
   private readonly _eventBus: InMemoryGiftCardEventBus;
-  private readonly _topUpConfirmation: TopUpConfirmation;
   private readonly _bookingResult: BookingResult;
+  private readonly _paymentResult: PaymentResult;
   private readonly _creditFromBooking: CreditFromBooking;
   private readonly _refundFromBooking: RefundFromBooking;
+  private readonly _confirmTopUpFromPayment: ConfirmTopUpFromPayment;
   private readonly _topUpPaymentRequestPolicy: TopUpPaymentRequestPolicy;
   private readonly _topUpRequestedHandlers: TopUpRequestedHandler[];
 
@@ -43,17 +44,18 @@ export class GiftCardModule extends ApplicationModule {
     this._giftCardRepository = new SqliteGiftCardRepository(this._database);
     this._eventBus = new InMemoryGiftCardEventBus((task) => task());
     this._bookingResult = new BookingResult();
+    this._paymentResult = new PaymentResult();
     this.registerCrossBcHandlers();
-    this._topUpConfirmation = this.createTopUpConfirmation();
     this._creditFromBooking = this.createCreditFromBooking();
     this._refundFromBooking = this.createRefundFromBooking();
+    this._confirmTopUpFromPayment = this.createConfirmTopUpFromPayment();
     this._topUpPaymentRequestPolicy = new TopUpPaymentRequestPolicy();
   }
 
   private readonly _database: Database.Database;
 
-  topUpConfirmation(): TopUpConfirmation {
-    return this._topUpConfirmation;
+  confirmTopUpFromPayment(): ConfirmTopUpFromPayment {
+    return this._confirmTopUpFromPayment;
   }
 
   creditFromBooking(): CreditFromBooking {
@@ -89,12 +91,6 @@ export class GiftCardModule extends ApplicationModule {
     }
   }
 
-  private createTopUpConfirmation(): TopUpConfirmation {
-    const policy = new ConfirmTopUpPolicy();
-    const useCase = new TopUpConfirming(this._giftCardRepository);
-    return new TopUpConfirmation(policy, useCase);
-  }
-
   private createCreditFromBooking(): CreditFromBooking {
     const useCase = new GiftCardCrediting(this._giftCardRepository);
     return new CreditFromBooking(this._bookingResult, useCase);
@@ -103,5 +99,10 @@ export class GiftCardModule extends ApplicationModule {
   private createRefundFromBooking(): RefundFromBooking {
     const useCase = new GiftCardRefunding(this._giftCardRepository);
     return new RefundFromBooking(this._bookingResult, useCase);
+  }
+
+  private createConfirmTopUpFromPayment(): ConfirmTopUpFromPayment {
+    const useCase = new TopUpConfirming(this._giftCardRepository);
+    return new ConfirmTopUpFromPayment(this._paymentResult, useCase);
   }
 }

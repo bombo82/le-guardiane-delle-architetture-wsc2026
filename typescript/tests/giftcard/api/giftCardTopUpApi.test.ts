@@ -10,7 +10,7 @@ describe('GiftCardTopUpApi', () => {
 
   beforeAll(() => {
     const database = DatabaseSetup.initializeFileDb('giftcard', 'GiftCardTopUpApiTest');
-    module = new GiftCardModule(database, []);
+    module = new GiftCardModule(database);
     module.configure(app);
   });
 

@@ -21,7 +21,6 @@ import it.giannibombelli.wsc2026.giftcard.infrastructure.InMemoryGiftCardEventBu
 import it.giannibombelli.wsc2026.giftcard.infrastructure.SqliteGiftCardRepository;
 
 import javax.sql.DataSource;
-import java.util.List;
 import java.util.function.Consumer;
 
 public final class GiftCardModule extends ApplicationModule {
@@ -33,26 +32,19 @@ public final class GiftCardModule extends ApplicationModule {
     private final CreditFromBooking creditFromBooking;
     private final RefundFromBooking refundFromBooking;
     private final TopUpPaymentRequestPolicy topUpPaymentRequestPolicy;
-    private final List<Consumer<GiftCardTopUpRequested>> topUpRequestedHandlers;
 
     public GiftCardModule(DataSource dataSource) {
-        this(dataSource, List.of());
-    }
-
-    public GiftCardModule(DataSource dataSource, List<Consumer<GiftCardTopUpRequested>> topUpRequestedHandlers) {
         super();
         Require.requireDependency(dataSource, "dataSource");
 
         this.giftCardRepository = new SqliteGiftCardRepository(dataSource);
         this.eventBus = new InMemoryGiftCardEventBus(Runnable::run);
-        this.topUpRequestedHandlers = topUpRequestedHandlers;
         this.bookingResult = new BookingResult();
         this.paymentResult = new PaymentResult();
-        registerCrossBcHandlers();
-        confirmTopUpFromPayment = createConfirmTopUpFromPayment();
-        creditFromBooking = createCreditFromBooking();
-        refundFromBooking = createRefundFromBooking();
-        topUpPaymentRequestPolicy = new TopUpPaymentRequestPolicy();
+        this.confirmTopUpFromPayment = createConfirmTopUpFromPayment();
+        this.creditFromBooking = createCreditFromBooking();
+        this.refundFromBooking = createRefundFromBooking();
+        this.topUpPaymentRequestPolicy = new TopUpPaymentRequestPolicy();
     }
 
     public ConfirmTopUpFromPayment confirmTopUpFromPayment() {
@@ -71,6 +63,10 @@ public final class GiftCardModule extends ApplicationModule {
         return topUpPaymentRequestPolicy;
     }
 
+    public void onTopUpRequested(Consumer<GiftCardTopUpRequested> handler) {
+        eventBus.subscribe(GiftCardTopUpRequested.class, (EventSubscriber<GiftCardTopUpRequested>) Require.requireDependency(handler, "handler")::accept);
+    }
+
     public void configure(JavalinConfig config) {
         GiftCardIssuing giftCardIssuing = new GiftCardIssuing(giftCardRepository);
         TopUpRequesting topUpRequesting = new TopUpRequesting(giftCardRepository, eventBus);
@@ -78,11 +74,6 @@ public final class GiftCardModule extends ApplicationModule {
 
         GiftCardApi api = new GiftCardApi(giftCardIssuing, giftCardQueryService, topUpRequesting);
         api.configure(config);
-    }
-
-    private void registerCrossBcHandlers() {
-        topUpRequestedHandlers.forEach(handler ->
-            eventBus.subscribe(GiftCardTopUpRequested.class, (EventSubscriber<GiftCardTopUpRequested>) handler::accept));
     }
 
     private ConfirmTopUpFromPayment createConfirmTopUpFromPayment() {

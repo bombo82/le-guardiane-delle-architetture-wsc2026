@@ -24,7 +24,7 @@ class GiftCardTopUpApiTest {
     @BeforeAll
     void setUp() {
         final DataSource dataSource = DatabaseSetup.initializeFileDb("giftcard", getClass().getSimpleName());
-        GiftCardModule module = new GiftCardModule(dataSource, java.util.List.of());
+        GiftCardModule module = new GiftCardModule(dataSource);
 
         javalin.start(module::configure);
     }

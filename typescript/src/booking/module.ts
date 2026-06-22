@@ -10,7 +10,7 @@ import { BookingConfirming } from './application/usecases/bookingConfirming.js';
 import { BookingPlacing } from './application/usecases/bookingPlacing.js';
 import { BookingRejecting } from './application/usecases/bookingRejecting.js';
 import { BookingPlaced } from './domain/events/bookingPlaced.js';
-import type { BookingResultEvent, BookingRejected } from './domain/events/bookingResultEvents.js';
+import type { BookingResultEvent } from './domain/events/bookingResultEvents.js';
 import {
   bookingCompletedIntegrationEvent,
   bookingRefusedIntegrationEvent,
@@ -25,7 +25,6 @@ import { requireDependency } from '@/common/utils/requireDependency.js';
 
 export type BookingPlacedHandler = (event: BookingPlaced) => void;
 export type BookingResultHandler = (event: BookingResultEvent) => void;
-export type BookingRejectedHandler = (event: BookingRejected) => void;
 export type BookingResultIntegrationHandler = (event: BookingResultIntegrationEvent) => void;
 export type BookingRejectedIntegrationHandler = (event: BookingRejectedIntegrationEvent) => void;
 
@@ -34,20 +33,8 @@ export class BookingModule extends ApplicationModule {
   private readonly _bookingRepository: SqliteBookingRepository;
   private readonly _eventBus: InMemoryBookingEventBus;
   private readonly _handlePaymentResultFromPayment: HandlePaymentResultFromPayment;
-  private readonly _bookingPlacedHandlers: BookingPlacedHandler[];
-  private readonly _bookingConfirmedHandlers: BookingResultHandler[];
-  private readonly _bookingRejectedHandlers: BookingRejectedHandler[];
-  private readonly _bookingResultIntegrationHandlers: BookingResultIntegrationHandler[];
-  private readonly _bookingRejectedIntegrationHandlers: BookingRejectedIntegrationHandler[];
 
-  constructor(
-    database: Database.Database,
-    bookingPlacedHandlers: BookingPlacedHandler[] = [],
-    bookingConfirmedHandlers: BookingResultHandler[] = [],
-    bookingRejectedHandlers: BookingRejectedHandler[] = [],
-    bookingResultIntegrationHandlers: BookingResultIntegrationHandler[] = [],
-    bookingRejectedIntegrationHandlers: BookingRejectedIntegrationHandler[] = []
-  ) {
+  constructor(database: Database.Database) {
     super();
 
     requireDependency(database, "database");
@@ -55,17 +42,72 @@ export class BookingModule extends ApplicationModule {
     this._database = database;
     this._bookingRepository = new SqliteBookingRepository(this._database);
     this._eventBus = new InMemoryBookingEventBus((task) => task());
-    this._bookingPlacedHandlers = [...bookingPlacedHandlers];
-    this._bookingConfirmedHandlers = [...bookingConfirmedHandlers];
-    this._bookingRejectedHandlers = [...bookingRejectedHandlers];
-    this._bookingResultIntegrationHandlers = [...bookingResultIntegrationHandlers];
-    this._bookingRejectedIntegrationHandlers = [...bookingRejectedIntegrationHandlers];
-    this.registerCrossBcHandlers();
     this._handlePaymentResultFromPayment = this.createHandlePaymentResultFromPayment();
   }
 
   handlePaymentResultFromPayment(): HandlePaymentResultFromPayment {
     return this._handlePaymentResultFromPayment;
+  }
+
+  onBookingPlaced(handler: BookingPlacedHandler): void {
+    this._eventBus.subscribe('BookingPlaced', {
+      on: (event) => {
+        if (event.kind === 'BookingPlaced') {
+          handler(event);
+        }
+      },
+    });
+  }
+
+  onBookingResult(handler: BookingResultHandler): void {
+    this._eventBus.subscribe('BookingConfirmed', {
+      on: (event) => {
+        if (event.kind === 'BookingConfirmed') {
+          handler(event);
+        }
+      },
+    });
+    this._eventBus.subscribe('BookingRefused', {
+      on: (event) => {
+        if (event.kind === 'BookingRefused') {
+          handler(event);
+        }
+      },
+    });
+    this._eventBus.subscribe('BookingRejected', {
+      on: (event) => {
+        if (event.kind === 'BookingRejected') {
+          handler(event);
+        }
+      },
+    });
+  }
+
+  onBookingResultIntegration(handler: BookingResultIntegrationHandler): void {
+    this._eventBus.subscribe('BookingConfirmed', {
+      on: (event) => {
+        if (event.kind === 'BookingConfirmed') {
+          handler(bookingCompletedIntegrationEvent(event.giftCardReference, event.amount));
+        }
+      },
+    });
+    this._eventBus.subscribe('BookingRefused', {
+      on: (event) => {
+        if (event.kind === 'BookingRefused') {
+          handler(bookingRefusedIntegrationEvent(event.giftCardReference, event.amount));
+        }
+      },
+    });
+  }
+
+  onBookingRejectedIntegration(handler: BookingRejectedIntegrationHandler): void {
+    this._eventBus.subscribe('BookingRejected', {
+      on: (event) => {
+        if (event.kind === 'BookingRejected') {
+          handler(bookingRejectedIntegrationEvent(event.giftCardReference, event.amount));
+        }
+      },
+    });
   }
 
   configure(app: Express): void {
@@ -81,71 +123,5 @@ export class BookingModule extends ApplicationModule {
     const bookingConfirming = new BookingConfirming(this._bookingRepository, this._eventBus);
     const bookingRejecting = new BookingRejecting(this._bookingRepository, this._eventBus);
     return new HandlePaymentResultFromPayment(paymentResult, bookingConfirming, bookingRejecting);
-  }
-
-  private registerCrossBcHandlers(): void {
-    for (const handler of this._bookingPlacedHandlers) {
-      this._eventBus.subscribe('BookingPlaced', {
-        on: (event) => {
-          if (event.kind === 'BookingPlaced') {
-            handler(event);
-          }
-        },
-      });
-    }
-
-    for (const handler of this._bookingConfirmedHandlers) {
-      this._eventBus.subscribe('BookingConfirmed', {
-        on: (event) => {
-          if (event.kind === 'BookingConfirmed') {
-            handler(event);
-          }
-        },
-      });
-      this._eventBus.subscribe('BookingRefused', {
-        on: (event) => {
-          if (event.kind === 'BookingRefused') {
-            handler(event);
-          }
-        },
-      });
-    }
-
-    for (const handler of this._bookingRejectedHandlers) {
-      this._eventBus.subscribe('BookingRejected', {
-        on: (event) => {
-          if (event.kind === 'BookingRejected') {
-            handler(event);
-          }
-        },
-      });
-    }
-
-    for (const handler of this._bookingResultIntegrationHandlers) {
-      this._eventBus.subscribe('BookingConfirmed', {
-        on: (event) => {
-          if (event.kind === 'BookingConfirmed') {
-            handler(bookingCompletedIntegrationEvent(event.giftCardReference, event.amount));
-          }
-        },
-      });
-      this._eventBus.subscribe('BookingRefused', {
-        on: (event) => {
-          if (event.kind === 'BookingRefused') {
-            handler(bookingRefusedIntegrationEvent(event.giftCardReference, event.amount));
-          }
-        },
-      });
-    }
-
-    for (const handler of this._bookingRejectedIntegrationHandlers) {
-      this._eventBus.subscribe('BookingRejected', {
-        on: (event) => {
-          if (event.kind === 'BookingRejected') {
-            handler(bookingRejectedIntegrationEvent(event.giftCardReference, event.amount));
-          }
-        },
-      });
-    }
   }
 }

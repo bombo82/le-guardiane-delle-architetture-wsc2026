@@ -343,6 +343,56 @@ Dopo questa modifica:
 - ❌ `booking` dipende ancora da `payment` sul flusso **command** (`BookingPaymentRequestPolicy`, `BookingRefundRequestPolicy`).
 - ❌ `giftcard` dipende ancora da `payment` sul flusso **command** (`TopUpPaymentRequestPolicy`).
 
+### 6.1 Semplificazione del wiring applicativo
+
+Dopo aver introdotto PL e ACL, il `CompositionRoot` (`Application`) era diventato verboso: ogni modulo veniva costruito passando liste di handler e ogni handler di integrazione veniva registrato con tre chiamate separate (`onPaymentAccepted`/`onPaymentRejected`/`onPaymentExpired`).
+
+Sono state applicate le seguenti semplificazioni, mantenendo l’esplicità del wiring manuale:
+
+1. **Unificazione degli handler di integrazione in `PaymentModule`**
+   - Rimosse le liste interne non usate (`acceptedHandlers`, `rejectedHandlers`, `expiredHandlers`) e i metodi `addAcceptedHandler`/`addRejectedHandler`/`addExpiredHandler`.
+   - Unificate le tre liste di handler di integrazione in una sola lista di `PaymentResultIntegrationHandler`.
+   - Aggiunto `onPaymentResult(handler)` che registra lo stesso handler per `PaymentAccepted`, `PaymentRejected` e `PaymentExpired`.
+
+2. **Spostamento della registrazione handler da costruttore a metodi post-costruzione**
+   - `BookingModule`: rimossi i 5 parametri di liste dal costruttore; aggiunti `onBookingPlaced`, `onBookingResult`, `onBookingResultIntegration`, `onBookingRejectedIntegration`.
+   - `GiftCardModule`: rimosso il parametro `topUpRequestedHandlers` dal costruttore; aggiunto `onTopUpRequested`.
+   - `PaymentModule`: costruttore ridotto al solo `DataSource`/`Database`.
+
+3. **Unificazione degli handler di risultato di `BookingModule`**
+   - Le liste `bookingConfirmedHandlers` e `bookingRejectedHandlers` sono state unite in `bookingResultHandlers` gestita da `onBookingResult(Consumer<BookingResultEvents>)`.
+
+4. **Incapsulazione del wiring in metodi privati di `Application`**
+   - Il costruttore di `Application` ora crea i tre moduli e chiama:
+     ```text
+     wireTopUpRequests();
+     wireBookingResults();
+     wirePaymentResults();
+     ```
+   - Ogni metodo raggruppa la logica di un flusso cross-BC, rendendo il composition root leggibile e facile da navigare.
+
+### Esempio del wiring risultante
+
+```text
+Application
+  ├── wireTopUpRequests()
+  │     ├── giftcard.onTopUpRequested(...) → paymentRequesting.invoke(...)
+  │     ├── booking.onBookingPlaced(...)   → paymentRequesting.invoke(...)
+  │     └── booking.onBookingResult(...)   → refundRequesting.invoke(...) [solo BookingRefused]
+  ├── wireBookingResults()
+  │     ├── booking.onBookingResultIntegration(...) → giftcard.creditFromBooking().handle(...)
+  │     └── booking.onBookingRejectedIntegration(...) → giftcard.refundFromBooking().handle(...)
+  └── wirePaymentResults()
+        ├── payment.onPaymentResult(...) → booking.handlePaymentResultFromPayment().handle(...)
+        └── payment.onPaymentResult(...) → giftcard.confirmTopUpFromPayment().handle(...)
+```
+
+### Motivazione
+
+- **Costruttori dei moduli più piccoli**: i moduli non espongono più la complessità del wiring cross-BC nel loro costruttore.
+- **Wiring esplicito ma compatto**: `Application` rimane il punto unico e visibile in cui i BC vengono collegati, ma senza il rumore delle liste vuote e delle registrazioni ripetute.
+- **Nessuna magia**: nessun framework di DI; le dipendenze continuano a essere costruite e collegate esplicitamente a mano.
+
 ---
 
 ## 7. Cosa non è stato ancora risolto (e perché)

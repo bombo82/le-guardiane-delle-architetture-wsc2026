@@ -34,8 +34,6 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
-import static java.util.Objects.requireNonNull;
-
 public final class PaymentModule extends ApplicationModule {
 
     private final DataSource dataSource;
@@ -43,33 +41,16 @@ public final class PaymentModule extends ApplicationModule {
     private final EventBus<PaymentEvent> eventBus;
     private final PaymentRequesting paymentRequesting;
     private final RefundRequesting refundRequesting;
-    private final List<Consumer<PaymentResultEvents.PaymentAccepted>> acceptedHandlers;
-    private final List<Consumer<PaymentResultEvents.PaymentRejected>> rejectedHandlers;
-    private final List<Consumer<PaymentResultEvents.PaymentExpired>> expiredHandlers;
-    private final List<Consumer<PaymentResultIntegrationEvent.PaymentAcceptedIntegrationEvent>> acceptedIntegrationHandlers;
-    private final List<Consumer<PaymentResultIntegrationEvent.PaymentRejectedIntegrationEvent>> rejectedIntegrationHandlers;
-    private final List<Consumer<PaymentResultIntegrationEvent.PaymentExpiredIntegrationEvent>> expiredIntegrationHandlers;
+    private final List<Consumer<PaymentResultIntegrationEvent>> paymentResultIntegrationHandlers;
     private PaymentDeadlineWatcher watcher;
 
     public PaymentModule(DataSource dataSource) {
-        this(dataSource, List.of(), List.of(), List.of());
-    }
-
-    public PaymentModule(DataSource dataSource,
-                         List<Consumer<PaymentResultEvents.PaymentAccepted>> acceptedHandlers,
-                         List<Consumer<PaymentResultEvents.PaymentRejected>> rejectedHandlers,
-                         List<Consumer<PaymentResultEvents.PaymentExpired>> expiredHandlers) {
         super();
         Require.requireDependency(dataSource, "dataSource");
         this.dataSource = dataSource;
         this.paymentRepository = new SqlitePaymentRepository(dataSource);
         this.eventBus = new InMemoryPaymentEventBus(Executors.newVirtualThreadPerTaskExecutor());
-        this.acceptedHandlers = new ArrayList<>(requireNonNull(acceptedHandlers));
-        this.rejectedHandlers = new ArrayList<>(requireNonNull(rejectedHandlers));
-        this.expiredHandlers = new ArrayList<>(requireNonNull(expiredHandlers));
-        this.acceptedIntegrationHandlers = new ArrayList<>();
-        this.rejectedIntegrationHandlers = new ArrayList<>();
-        this.expiredIntegrationHandlers = new ArrayList<>();
+        this.paymentResultIntegrationHandlers = new ArrayList<>();
         this.paymentRequesting = new PaymentRequesting(paymentRepository, eventBus);
         this.refundRequesting = new RefundRequesting(paymentRepository, eventBus);
         registerCrossBcResultHandlers();
@@ -78,27 +59,24 @@ public final class PaymentModule extends ApplicationModule {
     private void registerCrossBcResultHandlers() {
         eventBus.subscribe(PaymentResultEvents.PaymentAccepted.class,
             (EventSubscriber<PaymentResultEvents.PaymentAccepted>) event -> {
-                acceptedHandlers.forEach(h -> h.accept(event));
                 PaymentResultIntegrationEvent.PaymentAcceptedIntegrationEvent integrationEvent =
                     new PaymentResultIntegrationEvent.PaymentAcceptedIntegrationEvent(
                         event.clientReference().value().toString(), event.amount());
-                acceptedIntegrationHandlers.forEach(h -> h.accept(integrationEvent));
+                paymentResultIntegrationHandlers.forEach(h -> h.accept(integrationEvent));
             });
         eventBus.subscribe(PaymentResultEvents.PaymentRejected.class,
             (EventSubscriber<PaymentResultEvents.PaymentRejected>) event -> {
-                rejectedHandlers.forEach(h -> h.accept(event));
                 PaymentResultIntegrationEvent.PaymentRejectedIntegrationEvent integrationEvent =
                     new PaymentResultIntegrationEvent.PaymentRejectedIntegrationEvent(
                         event.clientReference().value().toString(), event.amount(), event.reason().value());
-                rejectedIntegrationHandlers.forEach(h -> h.accept(integrationEvent));
+                paymentResultIntegrationHandlers.forEach(h -> h.accept(integrationEvent));
             });
         eventBus.subscribe(PaymentResultEvents.PaymentExpired.class,
             (EventSubscriber<PaymentResultEvents.PaymentExpired>) event -> {
-                expiredHandlers.forEach(h -> h.accept(event));
                 PaymentResultIntegrationEvent.PaymentExpiredIntegrationEvent integrationEvent =
                     new PaymentResultIntegrationEvent.PaymentExpiredIntegrationEvent(
                         event.clientReference().value().toString(), event.amount());
-                expiredIntegrationHandlers.forEach(h -> h.accept(integrationEvent));
+                paymentResultIntegrationHandlers.forEach(h -> h.accept(integrationEvent));
             });
     }
 
@@ -114,28 +92,8 @@ public final class PaymentModule extends ApplicationModule {
         return refundRequesting;
     }
 
-    public void addAcceptedHandler(Consumer<PaymentResultEvents.PaymentAccepted> handler) {
-        acceptedHandlers.add(requireNonNull(handler));
-    }
-
-    public void addRejectedHandler(Consumer<PaymentResultEvents.PaymentRejected> handler) {
-        rejectedHandlers.add(requireNonNull(handler));
-    }
-
-    public void addExpiredHandler(Consumer<PaymentResultEvents.PaymentExpired> handler) {
-        expiredHandlers.add(requireNonNull(handler));
-    }
-
-    public void addAcceptedIntegrationHandler(Consumer<PaymentResultIntegrationEvent.PaymentAcceptedIntegrationEvent> handler) {
-        acceptedIntegrationHandlers.add(requireNonNull(handler));
-    }
-
-    public void addRejectedIntegrationHandler(Consumer<PaymentResultIntegrationEvent.PaymentRejectedIntegrationEvent> handler) {
-        rejectedIntegrationHandlers.add(requireNonNull(handler));
-    }
-
-    public void addExpiredIntegrationHandler(Consumer<PaymentResultIntegrationEvent.PaymentExpiredIntegrationEvent> handler) {
-        expiredIntegrationHandlers.add(requireNonNull(handler));
+    public void onPaymentResult(Consumer<PaymentResultIntegrationEvent> handler) {
+        paymentResultIntegrationHandlers.add(Require.requireDependency(handler, "handler"));
     }
 
     public void configure(JavalinConfig config) {

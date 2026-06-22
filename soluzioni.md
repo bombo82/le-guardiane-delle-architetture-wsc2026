@@ -38,6 +38,8 @@ Le policy sono state ricollocate tutte nel layer `application`:
 - le implementazioni concrete in `<bc>.application.policies`;
 - l'interfaccia `Policy` in `common.application`.
 
+Le policy che attraversavano i confini dei Bounded Context (ad es. `BookingPaymentRequestPolicy`, `BookingRefundRequestPolicy`, `TopUpPaymentRequestPolicy`) non sono state semplicemente spostate: sono state **eliminate** e sostituite da **Anti-Corruption Layer** + **Published Language**, come descritto nelle sezioni 5 e 7. Il motivo è che una policy cross-BC introduce coupling sul modello interno di un altro BC; il posto corretto per tradurre eventi di dominio in command verso un altro BC è l'ACL, non una policy interna.
+
 ```text
 src/main/java/it/giannibombelli/wsc2026/<bc>/application/policies/
 src/main/java/it/giannibombelli/wsc2026/common/application/Policy.java
@@ -343,6 +345,8 @@ Dopo questa modifica:
 - ❌ `booking` dipende ancora da `payment` sul flusso **command** (`BookingPaymentRequestPolicy`, `BookingRefundRequestPolicy`).
 - ❌ `giftcard` dipende ancora da `payment` sul flusso **command** (`TopUpPaymentRequestPolicy`).
 
+Il flusso command verso `payment` viene risolto nella sezione 7.
+
 ### 6.1 Semplificazione del wiring applicativo
 
 Dopo aver introdotto PL e ACL, il `CompositionRoot` (`Application`) era diventato verboso: ogni modulo veniva costruito passando liste di handler e ogni handler di integrazione veniva registrato con tre chiamate separate (`onPaymentAccepted`/`onPaymentRejected`/`onPaymentExpired`).
@@ -376,9 +380,9 @@ Sono state applicate le seguenti semplificazioni, mantenendo l’esplicità del 
 ```text
 Application
   ├── wireTopUpRequests()
-  │     ├── giftcard.onTopUpRequested(...) → paymentRequesting.invoke(...)
-  │     ├── booking.onBookingPlaced(...)   → paymentRequesting.invoke(...)
-  │     └── booking.onBookingResult(...)   → refundRequesting.invoke(...) [solo BookingRefused]
+  │     ├── giftcard.onTopUpRequested(...) → PaymentRequest.fromTopUp(...) → paymentModule.requestPayment(...)
+  │     ├── booking.onBookingPlaced(...)   → PaymentRequest.fromBookingPlaced(...) → paymentModule.requestPayment(...)
+  │     └── booking.onBookingResult(...)   → RefundRequest.fromBookingRefused(...) → paymentModule.requestRefund(...) [solo BookingRefused]
   ├── wireBookingResults()
   │     ├── booking.onBookingResultIntegration(...) → giftcard.creditFromBooking().handle(...)
   │     └── booking.onBookingRejectedIntegration(...) → giftcard.refundFromBooking().handle(...)
@@ -395,25 +399,91 @@ Application
 
 ---
 
-## 7. Cosa non è stato ancora risolto (e perché)
+## 7. Decoupling del flusso command `booking / giftcard → payment` con Published Language e ACL
 
-Le uniche violazioni rimaste attive sul branch `solutions` riguardano il flusso **command** verso `payment`:
+### Problema
 
-- `booking` dipende da `payment` (`BookingPaymentRequestPolicy`, `BookingRefundRequestPolicy`).
-- `giftcard` dipende da `payment` (`TopUpPaymentRequestPolicy`).
+`booking` e `giftcard` dipendevano direttamente da command interni di `payment` per richiedere un pagamento o un rimborso:
 
-### Perché non è stato risolto
+```text
+booking.application.policies.BookingPaymentRequestPolicy  → payment.application.commands.RequestPayment
+booking.application.policies.BookingRefundRequestPolicy   → payment.application.commands.RefundTransaction
+giftcard.application.policies.TopUpPaymentRequestPolicy   → payment.application.commands.RequestPayment
+```
 
-Il disegno completo dei confini tra BC è l'argomento più ampio del workshop. Richiede di introdurre pattern di integrazione come:
+Questo violava il confine cross-BC: i BC downstream conoscevano il modello interno di `payment`.
 
-- eventi di integrazione separati dagli eventi interni;
-- API esposte pubblicamente da ciascun BC;
-- anti-corruption layer per isolare i modelli esterni.
+### Soluzione adottata
 
-Questo punto viene approfondito nelle soluzioni finali del workshop.
+Sono stati introdotti **Published Language** lato `payment` e **Anti-Corruption Layer** lato `booking` e `giftcard`:
+
+1. **Published Language di `payment`** in `payment.integration`:
+   - `PaymentRequestIntegrationCommand` — per richiedere un nuovo pagamento;
+   - `RefundRequestIntegrationCommand` — per richiedere un rimborso.
+   - I campi usano solo tipi stabili (`String`/`UUID` per il `clientReference`, `Money` per l'importo).
+
+2. **Anti-Corruption Layer** in `booking.application.integration.payment`:
+   - `adapter.PaymentRequest` traduce `BookingPlaced` in `PaymentRequestIntegrationCommand`;
+   - `adapter.RefundRequest` traduce `BookingResultEvents.BookingRefused` in `RefundRequestIntegrationCommand`.
+
+3. **Anti-Corruption Layer** in `giftcard.application.integration.payment`:
+   - `adapter.PaymentRequest` traduce `GiftCardTopUpRequested` in `PaymentRequestIntegrationCommand`.
+
+4. **Gateway verso `payment`** in `PaymentModule`:
+   - `requestPayment(PaymentRequestIntegrationCommand)` — traduce il command di integrazione nel command interno `RequestPayment` e lo esegue;
+   - `requestRefund(RefundRequestIntegrationCommand)` — traduce il command di integrazione nel command interno `RefundTransaction` e lo esegue.
+
+5. **Rimozione delle policy cross-BC** `BookingPaymentRequestPolicy`, `BookingRefundRequestPolicy` e `TopUpPaymentRequestPolicy`, che importavano direttamente i command interni di `payment`.
+
+6. **Wiring nel Composition Root** (`Application`):
+   - `Application` riceve gli eventi di dominio da `booking`/`giftcard`, li fa tradurre dagli ACL nei command di integrazione e li passa a `PaymentModule`.
+
+```text
+payment
+  └── integration
+      ├── PaymentRequestIntegrationCommand        <- Published Language
+      └── RefundRequestIntegrationCommand         <- Published Language
+
+booking
+  └── application/integration/payment
+      ├── adapter
+      │   ├── PaymentRequest                      <- ACL
+      │   │   └── fromBookingPlaced(BookingPlaced) → PaymentRequestIntegrationCommand
+      │   └── RefundRequest                       <- ACL
+      │       └── fromBookingRefused(BookingRefused) → RefundRequestIntegrationCommand
+
+giftcard
+  └── application/integration/payment
+      └── adapter
+          └── PaymentRequest                      <- ACL
+              └── fromTopUp(GiftCardTopUpRequested) → PaymentRequestIntegrationCommand
+```
+
+### Motivazione
+
+- **Simmetria con il flusso eventi**: `payment` espone una PL sia per gli esiti (eventi) sia per le richieste (command). I BC downstream usano ACL dedicati per entrambe le direzioni.
+- **Nessuna conoscenza del modello interno di payment**: `booking` e `giftcard` non conoscono più `RequestPayment`, `RefundTransaction` o `PaymentId`.
+- **Command di integrazione stabili**: i campi `clientReference` (stringa UUID) e `amount` (`Money`) sono un contratto semplice e stabile.
+- **Gateway esplicito**: `PaymentModule.requestPayment(...)` e `requestRefund(...)` sono l'unico punto di ingresso verso `payment` per i command cross-BC.
+
+### Regole AFF simmetriche
+
+Per proteggere la nuova PL di `payment`, sono state aggiunte regole AFF speculari a quelle già esistenti per `booking`:
+
+- `paymentPublishedLanguageMustBeIndependent`
+- `paymentPublishedLanguageMustNotDependOnBooking`
+- `paymentPublishedLanguageMustNotDependOnGiftCard`
+- `onlyBookingAclMayConsumePaymentPublishedLanguage`
+- `onlyGiftCardAclMayConsumePaymentPublishedLanguage`
 
 ---
 
-## 8. Evoluzioni future
+## 8. Cosa non è stato ancora risolto
+
+Nel branch `solutions` non rimangono violazioni architetturali attive. Tutte le relazioni cross-BC sono state disaccoppiate tramite Published Language e Anti-Corruption Layer.
+
+---
+
+## 9. Evoluzioni future
 
 Il branch `feature/usecase-aff-rule` contiene un'ulteriore evoluzione: una regola `useCasesMustImplementUseCase` che verifica che tutte le classi in `application/usecases` implementino l'interfaccia `UseCase`. Quella regola rileva che `PaymentExpiring`, `TransactionAccepting` e `TransactionRejecting` sono in realtà `EventSubscriber`, non use case: apre il discorso su dove collocare gli orchestratori event-driven e su come distinguere use case, servizi applicativi e event handler. Il tema verrà affrontato in un momento successivo del workshop.

@@ -9,18 +9,18 @@
 
 | Implementazione | Test AFF totali | Falliti | Passati |
 |---|---|---|---|
-| Java | 36 | **2** | 34 |
-| TypeScript | 37 | **2** | 35 |
+| Java | 41 | **0** | 41 |
+| TypeScript | 42 | **0** | 42 |
 
 > I numeri includono le regole ArchUnit/TS su cross-BC dependencies, Published Language / ACL, hexagonal architecture, shape rules e domain/application purity per ciascun bounded context.
 
-Le violazioni rimanenti si concentrano in **un'unica area**:
+**Non ci sono più violazioni architetturali attive.** Tutte le relazioni cross-BC sono state disaccoppiate tramite **Published Language** e **Anti-Corruption Layer**:
 
-1. **Confini tra Bounded Context** — `booking` e `giftcard` dipendono ancora direttamente da `payment` sul flusso **command** (richiesta pagamento / rimborso).
+- `booking → giftcard` (risultati prenotazione);
+- `payment → giftcard` e `payment → booking` (esiti pagamento);
+- `booking → payment` e `giftcard → payment` (richiesta pagamento / rimborso).
 
-Le relazioni `booking ↔ giftcard`, `payment → giftcard` e `payment → booking` (eventi di risultato) sono state disaccoppiate tramite **Published Language** e **Anti-Corruption Layer**.
-
-Layer interni esagonali e shape rules sono ora **tutti a posto**.
+Layer interni esagonali e shape rules sono **tutti a posto**.
 
 ---
 
@@ -94,9 +94,9 @@ giftcard.api.GiftCardApi
 | Regola AFF | Stato | BC coinvolto | Dettaglio |
 |---|---|---|---|
 | `booking` non deve dipendere da `giftcard` | ✅ Risolta | `booking` | La dipendenza è stata eliminata con `GiftCardReference`; gli eventi di dominio di `booking` espongono il riferimento come primitiva. |
-| `booking` non deve dipendere da `payment` | ⚠️ Parzialmente risolta | `booking` | Il flusso **eventi di risultato** (`payment → booking`) è stato disaccoppiato con `payment.integration.PaymentResultIntegrationEvent` e ACL `booking.application.integration.payment.adapter.PaymentResult`. Rimangono le dipendenze sul flusso **command** (`BookingPaymentRequestPolicy`, `BookingRefundRequestPolicy`). |
+| `booking` non deve dipendere da `payment` | ✅ Risolta | `booking` | Il flusso **eventi di risultato** (`payment → booking`) è stato disaccoppiato con `payment.integration.PaymentResultIntegrationEvent` e ACL `booking.application.integration.payment.adapter.PaymentResult`. Il flusso **command** (`booking → payment`) è stato disaccoppiato con `payment.integration.PaymentRequestIntegrationCommand` / `RefundRequestIntegrationCommand` e ACL `booking.application.integration.payment.adapter.PaymentRequest` / `RefundRequest`. |
 | `giftcard` non deve dipendere da `booking` | ✅ Risolta | `giftcard` | `giftcard` consuma ora la Published Language `booking.integration.giftcard` attraverso l'ACL `giftcard.application.integration.booking.adapter.BookingResult`. |
-| `giftcard` non deve dipendere da `payment` | ⚠️ Parzialmente risolta | `giftcard` | Il flusso **eventi di risultato** (`payment → giftcard`) è stato disaccoppiato con `payment.integration.PaymentResultIntegrationEvent` e ACL `giftcard.application.integration.payment.adapter.PaymentResult`. Rimane la violazione sul flusso **command** (`TopUpPaymentRequestPolicy`). |
+| `giftcard` non deve dipendere da `payment` | ✅ Risolta | `giftcard` | Il flusso **eventi di risultato** (`payment → giftcard`) è stato disaccoppiato con `payment.integration.PaymentResultIntegrationEvent` e ACL `giftcard.application.integration.payment.adapter.PaymentResult`. Il flusso **command** (`giftcard → payment`) è stato disaccoppiato con `payment.integration.PaymentRequestIntegrationCommand` e ACL `giftcard.application.integration.payment.adapter.PaymentRequest`. |
 | `payment → giftcard` eventi di risultato | ✅ Risolta | `payment` / `giftcard` | `payment` espone `PaymentResultIntegrationEvent`; `giftcard` lo traduce in `ConfirmTopUp` tramite ACL. |
 | `payment → booking` eventi di risultato | ✅ Risolta | `payment` / `booking` | `payment` espone `PaymentResultIntegrationEvent`; `booking` lo traduce in `ConfirmBooking`/`RejectBooking` tramite ACL. |
 | `payment` non deve dipendere da altri BC | ✅ OK | `payment` | Nessuna dipendenza verso `booking` o `giftcard`. |
@@ -110,53 +110,16 @@ giftcard.api.GiftCardApi
 > L'import di `giftcard.domain.giftcard.GiftCardId` in `booking` è stato rimosso. `Booking` e i suoi command ora usano `booking.domain.primitive.GiftCardReference`; gli eventi di dominio di `booking` espongono il riferimento come primitiva (`UUID`/`String`), che `giftcard` traduce nel proprio `GiftCardId` solo al proprio confine.
 
 > **Nota didattica — dipendenza `giftcard → booking` risolta con PL + ACL**  
-> `giftcard` non importa più `booking.domain.events.BookingResultEvents`. `booking` espone una Published Language dedicata in `booking.integration.giftcard` (`BookingResultIntegrationEvent` e i suoi sottotipi). `giftcard` accoglie questi eventi in un Anti-Corruption Layer (`giftcard.application.integration.booking.adapter.BookingResult`) che li traduce nei command interni `CreditGiftCard` e `RefundGiftCard`. Questo è lo stesso pattern che verrà applicato a `payment.integration` per risolvere le rimanenti violazioni.
-
-##### `booking` → `payment`
-
-| Tipo importato | Occorrenze |
-|---|---|
-| `payment.domain.events.PaymentResultEvents` | 12 |
-| `payment.application.commands.RefundTransaction` | 4 |
-| `payment.application.commands.RequestPayment` | 4 |
-| `payment.domain.ports.PaymentRepository` | 4 |
-| `payment.domain.events.PaymentResultEvents$PaymentAccepted` | 3 |
-| `payment.domain.events.PaymentResultEvents$PaymentRejected` | 3 |
-| `payment.domain.payment.PaymentId` | 3 |
-| `payment.domain.payment.Payment` | 1 |
-
-##### `giftcard` → `payment`
-
-| Tipo importato | Occorrenze |
-|---|---|
-| `payment.domain.events.PaymentResultEvents` | 8 |
-| `payment.application.commands.RequestPayment` | 4 |
-| `payment.domain.events.PaymentResultEvents$PaymentAccepted` | 2 |
-| `payment.domain.payment.PaymentId` | 2 |
-
-#### Esempi di dipendenze illecite (Java / TS equivalente)
-
-```text
-booking (flusso command)
-  → payment.application.commands.RequestPayment
-  → payment.application.commands.RefundTransaction
-  → payment.domain.ports.PaymentRepository
-  → payment.domain.payment.PaymentId
-
-giftcard (flusso command)
-  → payment.application.commands.RequestPayment
-  → payment.domain.payment.PaymentId
-```
-
-#### File classi / moduli principali coinvolti
-
-- `booking.application.policies.BookingPaymentRequestPolicy`
-- `booking.application.policies.BookingRefundRequestPolicy`
-- `booking.application.integration.payment.adapter.PaymentResult`
-- `booking.application.integration.payment.handlers.HandlePaymentResultFromPayment`
-- `giftcard.application.policies.TopUpPaymentRequestPolicy`
-- `giftcard.application.integration.payment.adapter.PaymentResult`
-- `giftcard.application.integration.payment.handlers.ConfirmTopUpFromPayment`
+> `giftcard` non importa più `booking.domain.events.BookingResultEvents`. `booking` espone una Published Language dedicata in `booking.integration.giftcard` (`BookingResultIntegrationEvent` e i suoi sottotipi). `giftcard` accoglie questi eventi in un Anti-Corruption Layer (`giftcard.application.integration.booking.adapter.BookingResult`) che li traduce nei command interni `CreditGiftCard` e `RefundGiftCard`.
+>
+> **Nota didattica — dipendenze `booking → payment` e `giftcard → payment` risolte con PL + ACL**  
+> `booking` e `giftcard` non importano più command o eventi interni di `payment`. `payment` espone una Published Language in `payment.integration`:
+> - `PaymentResultIntegrationEvent` per gli esiti di pagamento (già consumato tramite ACL dagli eventi);
+> - `PaymentRequestIntegrationCommand` e `RefundRequestIntegrationCommand` per le richieste di pagamento/rimborso.
+> I BC downstream traducono i propri eventi di dominio nei command di integrazione attraverso ACL dedicati:
+> - `booking.application.integration.payment.adapter.PaymentRequest` e `RefundRequest`;
+> - `giftcard.application.integration.payment.adapter.PaymentRequest`.
+> Il Composition Root (`Application`) riceve i command di integrazione e li invia a `PaymentModule.requestPayment(...)` / `requestRefund(...)`.
 
 #### File del nuovo confine `booking → giftcard`
 
@@ -166,6 +129,25 @@ booking.integration.giftcard.BookingResultIntegrationEvent
   → giftcard.application.integration.booking.adapter.BookingResult
     → CreditGiftCard / RefundGiftCard
   → giftcard.application.integration.booking.handlers.CreditFromBooking / RefundFromBooking
+```
+
+#### File del nuovo confine `booking / giftcard → payment` (command)
+
+```text
+giftcard.domain.events.GiftCardTopUpRequested
+  → giftcard.application.integration.payment.adapter.PaymentRequest
+    → payment.integration.PaymentRequestIntegrationCommand
+      → PaymentModule.requestPayment(...)
+
+booking.domain.events.BookingPlaced
+  → booking.application.integration.payment.adapter.PaymentRequest
+    → payment.integration.PaymentRequestIntegrationCommand
+      → PaymentModule.requestPayment(...)
+
+booking.domain.events.BookingResultEvents.BookingRefused
+  → booking.application.integration.payment.adapter.RefundRequest
+    → payment.integration.RefundRequestIntegrationCommand
+      → PaymentModule.requestRefund(...)
 ```
 
 ---
@@ -214,9 +196,14 @@ booking.integration.giftcard.BookingResultIntegrationEvent
 │   (adapter.PaymentResult → ConfirmBooking/RejectBooking)        │
 │                              ✅ Risolto                         │
 │                                                                 │
-│   booking ────────────────► payment (command)                   │
-│   giftcard ───────────────► payment (command)                   │
-│                              ❌ Da risolvere                    │
+│   booking ──────[PL]──────► payment (command)                   │
+│   (PaymentRequestIntegrationEvent / RefundRequestIntegrationEvent)
+│                                                                 │
+│   booking ──────[ACL]──────► payment.integration                │
+│   (adapter.PaymentRequest / RefundRequest)                      │
+│   giftcard ─────[ACL]──────► payment.integration                │
+│   (adapter.PaymentRequest)                                      │
+│                              ✅ Risolto                         │
 │                                                                 │
 │   payment  ───► nessuna dipendenza verso altri BC  ✅           │
 └─────────────────────────────────────────────────────────────────┘
@@ -226,14 +213,17 @@ booking.integration.giftcard.BookingResultIntegrationEvent
 
 ## Impatto architetturale
 
-| Violazione | Perché è un problema | Effetto sul refactoring |
+| Pattern | Perché è importante | Effetto sul refactoring |
 |---|---|---|
-| Cross-BC dependencies | I BC non sono più isolati; un cambiamento in `payment` si propaga in `booking` e `giftcard`. | Rottura del confine modulare; difficile estrarre un BC in micro-servizio. |
+| Published Language + ACL | I BC non sono più isolati; un cambiamento in `payment` si propaga in `booking` e `giftcard`. | Rottura del confine modulare; difficile estrarre un BC in micro-servizio. |
+
+Tutte le relazioni cross-BC sono ora protette da PL + ACL. Un refactor interno a `payment` (nomi eventi, struttura aggregate, command interni) non impatta più `booking` o `giftcard`, purché la Published Language in `payment.integration` resti stabile.
 
 ---
 
 ## Note
 
-- I test AFF che rilevano queste violazioni sono **attivi** (non `@Disabled`) sia in Java che in TypeScript.
-- Le violazioni rimanenti nel branch `solutions` sono solo le dipendenze cross-BC.
+- I test AFF sono **tutti attivi e passanti** sia in Java che in TypeScript.
+- Non rimangono violazioni architetturali cross-BC nel branch `solutions`.
+- Sono state aggiunte regole AFF esplicite per proteggere la Published Language di `payment`, in modo simmetrico a quanto già fatto per `booking`.
 - Il branch `feature/usecase-aff-rule` contiene invece l'evoluzione con la regola `useCasesMustImplementUseCase`, da approfondire in un momento successivo del workshop.

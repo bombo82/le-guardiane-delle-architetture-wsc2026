@@ -1,13 +1,13 @@
-package it.giannibombelli.wsc2026.giftcard.application.services;
+package it.giannibombelli.wsc2026.giftcard.application.integration.booking.handlers;
 
 import it.giannibombelli.wsc2026.booking.domain.booking.Booking;
-import it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents;
+import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent;
 import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
+import it.giannibombelli.wsc2026.giftcard.application.integration.booking.adapter.BookingResult;
 import it.giannibombelli.wsc2026.giftcard.application.usecases.GiftCardCrediting;
 import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCard;
 import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCardId;
-import it.giannibombelli.wsc2026.giftcard.application.policies.CreditGiftCardPolicy;
 import it.giannibombelli.wsc2026.giftcard.domain.ports.GiftCardRepository;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.SqliteGiftCardRepository;
 import it.giannibombelli.wsc2026.testsupport.DatabaseSetup;
@@ -24,32 +24,32 @@ import static it.giannibombelli.wsc2026.testsupport.AggregateFactory.getSavedGif
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class BookingResultCreditingTest {
+class CreditFromBookingTest {
 
     private GiftCardRepository repository;
-    private BookingResultCrediting creditGiftCardService;
+    private CreditFromBooking creditFromBooking;
 
     @BeforeEach
     void setUp() {
         final DataSource dataSource = DatabaseSetup.initializeInMemoryDb("giftcard");
         repository = new SqliteGiftCardRepository(dataSource);
 
-        CreditGiftCardPolicy policy = new CreditGiftCardPolicy();
+        BookingResult bookingResult = new BookingResult();
         GiftCardCrediting useCase = new GiftCardCrediting(repository);
-        creditGiftCardService = new BookingResultCrediting(policy, useCase);
+        creditFromBooking = new CreditFromBooking(bookingResult, useCase);
     }
 
     @Nested
     class Construction {
         @Test
         void rejectNullParameters() {
-            CreditGiftCardPolicy policy = new CreditGiftCardPolicy();
+            BookingResult bookingResult = new BookingResult();
             GiftCardCrediting useCase = new GiftCardCrediting(repository);
 
-            assertThatThrownBy(() -> new BookingResultCrediting(null, useCase))
+            assertThatThrownBy(() -> new CreditFromBooking(null, useCase))
                 .isInstanceOf(NullPointerException.class);
 
-            assertThatThrownBy(() -> new BookingResultCrediting(policy, null))
+            assertThatThrownBy(() -> new CreditFromBooking(bookingResult, null))
                 .isInstanceOf(NullPointerException.class);
         }
     }
@@ -62,8 +62,8 @@ class BookingResultCreditingTest {
             Booking booking = createBooking();
             Money credit = new Money(new BigDecimal("14.00"));
 
-            creditGiftCardService.handleBookingResults(
-                new BookingResultEvents.BookingConfirmed(booking.id(), giftCard.id().value(), credit)
+            creditFromBooking.handle(
+                new BookingResultIntegrationEvent.BookingCompletedIntegrationEvent(giftCard.id().value(), credit)
             );
 
             Optional<GiftCard> updated = repository.findById(giftCard.id());
@@ -77,8 +77,8 @@ class BookingResultCreditingTest {
             final Booking booking = createBooking();
             Money credit = new Money(new BigDecimal("9.99"));
 
-            creditGiftCardService.handleBookingResults(
-                new BookingResultEvents.BookingRefused(booking.id(), giftCard.id().value(), credit)
+            creditFromBooking.handle(
+                new BookingResultIntegrationEvent.BookingRefusedIntegrationEvent(giftCard.id().value(), credit)
             );
 
             GiftCard after = repository.findById(giftCard.id()).orElseThrow();
@@ -91,8 +91,8 @@ class BookingResultCreditingTest {
             Booking booking = createBooking();
             Money amount = new Money(new BigDecimal("5.00"));
 
-            creditGiftCardService.handleBookingResults(
-                new BookingResultEvents.BookingRejected(booking.id(), giftCard.id().value(), amount)
+            creditFromBooking.handle(
+                new BookingResultIntegrationEvent.BookingRejectedIntegrationEvent(giftCard.id().value(), amount)
             );
 
             GiftCard persisted = repository.findById(giftCard.id()).orElseThrow();
@@ -105,8 +105,8 @@ class BookingResultCreditingTest {
             Booking booking = createBooking();
             Money amount = new Money(new BigDecimal("5.00"));
 
-            assertThatThrownBy(() -> creditGiftCardService.handleBookingResults(
-                new BookingResultEvents.BookingConfirmed(booking.id(), nonExisting.value(), amount)
+            assertThatThrownBy(() -> creditFromBooking.handle(
+                new BookingResultIntegrationEvent.BookingCompletedIntegrationEvent(nonExisting.value(), amount)
             ))
                 .isInstanceOf(IllegalStateException.class);
         }

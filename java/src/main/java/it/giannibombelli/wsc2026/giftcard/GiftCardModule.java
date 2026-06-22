@@ -8,15 +8,14 @@ import it.giannibombelli.wsc2026.common.application.events.EventSubscriber;
 import it.giannibombelli.wsc2026.common.module.ApplicationModule;
 import it.giannibombelli.wsc2026.giftcard.api.GiftCardApi;
 import it.giannibombelli.wsc2026.giftcard.application.query.GiftCardQueryService;
-import it.giannibombelli.wsc2026.giftcard.application.services.BookingResultCrediting;
-import it.giannibombelli.wsc2026.giftcard.application.services.BookingResultRefunding;
 import it.giannibombelli.wsc2026.giftcard.application.services.TopUpConfirmation;
+import it.giannibombelli.wsc2026.giftcard.application.integration.booking.adapter.BookingResult;
+import it.giannibombelli.wsc2026.giftcard.application.integration.booking.handlers.CreditFromBooking;
+import it.giannibombelli.wsc2026.giftcard.application.integration.booking.handlers.RefundFromBooking;
 import it.giannibombelli.wsc2026.giftcard.application.usecases.*;
 import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardEvent;
 import it.giannibombelli.wsc2026.giftcard.domain.events.GiftCardTopUpRequested;
 import it.giannibombelli.wsc2026.giftcard.application.policies.ConfirmTopUpPolicy;
-import it.giannibombelli.wsc2026.giftcard.application.policies.CreditGiftCardPolicy;
-import it.giannibombelli.wsc2026.giftcard.application.policies.RefundGiftCardPolicy;
 import it.giannibombelli.wsc2026.giftcard.application.policies.TopUpPaymentRequestPolicy;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.InMemoryGiftCardEventBus;
 import it.giannibombelli.wsc2026.giftcard.infrastructure.SqliteGiftCardRepository;
@@ -29,8 +28,9 @@ public final class GiftCardModule extends ApplicationModule {
     private final SqliteGiftCardRepository giftCardRepository;
     private final EventBus<GiftCardEvent> eventBus;
     private final TopUpConfirmation topUpConfirmation;
-    private final BookingResultCrediting bookingResultCrediting;
-    private final BookingResultRefunding bookingResultRefunding;
+    private final BookingResult bookingResult;
+    private final CreditFromBooking creditFromBooking;
+    private final RefundFromBooking refundFromBooking;
     private final TopUpPaymentRequestPolicy topUpPaymentRequestPolicy;
     private final List<Consumer<GiftCardTopUpRequested>> topUpRequestedHandlers;
 
@@ -45,10 +45,11 @@ public final class GiftCardModule extends ApplicationModule {
         this.giftCardRepository = new SqliteGiftCardRepository(dataSource);
         this.eventBus = new InMemoryGiftCardEventBus(Runnable::run);
         this.topUpRequestedHandlers = topUpRequestedHandlers;
+        this.bookingResult = new BookingResult();
         registerCrossBcHandlers();
         topUpConfirmation = createTopUpConfirmation();
-        bookingResultCrediting = createBookingResultCrediting();
-        bookingResultRefunding = createBookingResultRefunding();
+        creditFromBooking = createCreditFromBooking();
+        refundFromBooking = createRefundFromBooking();
         topUpPaymentRequestPolicy = new TopUpPaymentRequestPolicy();
     }
 
@@ -56,12 +57,12 @@ public final class GiftCardModule extends ApplicationModule {
         return topUpConfirmation;
     }
 
-    public BookingResultCrediting bookingResultCrediting() {
-        return bookingResultCrediting;
+    public CreditFromBooking creditFromBooking() {
+        return creditFromBooking;
     }
 
-    public BookingResultRefunding bookingResultRefunding() {
-        return bookingResultRefunding;
+    public RefundFromBooking refundFromBooking() {
+        return refundFromBooking;
     }
 
     public TopUpPaymentRequestPolicy topUpPaymentRequestPolicy() {
@@ -88,15 +89,13 @@ public final class GiftCardModule extends ApplicationModule {
         return new TopUpConfirmation(confirmTopUpPolicy, topUpConfirming);
     }
 
-    private BookingResultCrediting createBookingResultCrediting() {
-        CreditGiftCardPolicy policy = new CreditGiftCardPolicy();
+    private CreditFromBooking createCreditFromBooking() {
         GiftCardCrediting useCase = new GiftCardCrediting(giftCardRepository);
-        return new BookingResultCrediting(policy, useCase);
+        return new CreditFromBooking(bookingResult, useCase);
     }
 
-    private BookingResultRefunding createBookingResultRefunding() {
-        RefundGiftCardPolicy policy = new RefundGiftCardPolicy();
+    private RefundFromBooking createRefundFromBooking() {
         GiftCardRefunding useCase = new GiftCardRefunding(giftCardRepository);
-        return new BookingResultRefunding(policy, useCase);
+        return new RefundFromBooking(bookingResult, useCase);
     }
 }

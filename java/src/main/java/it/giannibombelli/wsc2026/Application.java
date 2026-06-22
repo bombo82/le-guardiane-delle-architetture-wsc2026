@@ -7,6 +7,8 @@ import io.javalin.config.JavalinConfig;
 import it.giannibombelli.wsc2026.booking.BookingModule;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingPlaced;
 import it.giannibombelli.wsc2026.booking.domain.events.BookingResultEvents;
+import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent;
+import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent.BookingRejectedIntegrationEvent;
 import it.giannibombelli.wsc2026.booking.application.policies.BookingPaymentRequestPolicy;
 import it.giannibombelli.wsc2026.booking.application.policies.BookingRefundRequestPolicy;
 import it.giannibombelli.wsc2026.common.module.ApplicationModule;
@@ -60,21 +62,25 @@ public final class Application extends ApplicationModule {
         };
 
         Consumer<BookingResultEvents> bookingConfirmedHandler = event -> {
-            giftCardModule.bookingResultCrediting().handleBookingResults(event);
             if (event instanceof BookingResultEvents.BookingRefused refused) {
                 RefundTransaction cmd = bookingRefundRequestPolicy.evaluate(refused);
                 paymentModule.refundRequesting().invoke(cmd);
             }
         };
 
-        Consumer<BookingResultEvents.BookingRejected> bookingRejectedHandler =
-            giftCardModule.bookingResultRefunding()::handleBookingResults;
+        Consumer<BookingResultIntegrationEvent> bookingResultIntegrationHandler =
+            giftCardModule.creditFromBooking()::handle;
+
+        Consumer<BookingRejectedIntegrationEvent> bookingRejectedIntegrationHandler =
+            giftCardModule.refundFromBooking()::handle;
 
         this.bookingModule = new BookingModule(
             bookingDataSource,
             List.of(bookingPlacedHandler),
             List.of(bookingConfirmedHandler),
-            List.of(bookingRejectedHandler)
+            List.of(),
+            List.of(bookingResultIntegrationHandler),
+            List.of(bookingRejectedIntegrationHandler)
         );
 
         paymentModule.addAcceptedHandler(bookingModule.paymentResultOutcome()::handlePaymentResults);

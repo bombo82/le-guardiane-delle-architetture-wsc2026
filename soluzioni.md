@@ -174,3 +174,35 @@ Il query layer disaccoppia il contratto HTTP dai dettagli di persistenza, lascia
 | Eventi di integrazione separati | Isolamento completo. | Richiede un ACL esplicito per direzione (adottato poi nelle sezioni 5-7). |
 
 `GiftCardReference` è il compromesso scelto tra pulizia del modello e semplicità.
+
+### 5. Decoupling `booking` ↔ `giftcard` con Published Language e ACL
+
+**Soluzione**
+
+1. Published Language di `booking` in `booking.integration.giftcard`: `BookingResultIntegrationEvent` (sealed/union) con i sottotipi `BookingCompleted`, `BookingRefused`, `BookingRejected`; campi solo di tipi stabili (`UUID`/`String`, `Money`).
+2. `BookingModule` traduce gli eventi interni `BookingConfirmed`/`BookingRefused`/`BookingRejected` nei corrispondenti eventi di integrazione quando invoca handler cross-BC.
+3. ACL in `giftcard.application.integration.booking`: `adapter.BookingResult` traduce gli eventi di integrazione in `CreditGiftCard`/`RefundGiftCard`; `handlers.CreditFromBooking` e `RefundFromBooking` orchestrano adapter e use case.
+4. Rimozione delle vecchie policy `CreditGiftCardPolicy` e `RefundGiftCardPolicy`: gli eventi di integrazione non sono eventi di dominio (niente `aggregateId` di `booking`), quindi non possono implementare `Policy`; il loro ruolo era già quello di adapter.
+
+```text
+booking
+  └── integration/giftcard
+      └── BookingResultIntegrationEvent          <- Published Language
+
+giftcard
+  └── application/integration/booking
+      ├── adapter/BookingResult                   <- ACL
+      └── handlers/{CreditFromBooking, RefundFromBooking}
+```
+
+**Motivazione**
+
+- Separazione tra eventi interni e pubblicati: il modello di `booking` evolve senza impattare `giftcard`, purché la PL resti stabile.
+- ACL esplicito: un solo punto di `giftcard` conosce il contratto pubblicato da `booking`.
+- Nessuna forzatura del pattern `Policy`: l'ACL è mapping, non decisione reattiva.
+
+**Alternative considerate**
+
+- *Condividere gli eventi di dominio come contratto pubblico*: espone il modello interno di `booking` a ogni sua evoluzione.
+- *Tradurre gli eventi nel composition root*: sposta il coupling nel punto meno coeso del sistema (vedi problema 8).
+- *Message broker con schema registry*: oltre lo scope didattico del workshop.

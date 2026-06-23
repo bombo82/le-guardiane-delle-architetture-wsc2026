@@ -13,8 +13,9 @@ import { requestGiftCardTopUp } from '../application/commands/requestGiftCardTop
 import { issueGiftCard } from '../application/commands/issueGiftCard.js';
 import { parseRequestTopUpRequest } from './requestTopUpRequest.js';
 import { toGiftCardResponse } from './giftCardResponse.js';
+import type { WebApi } from '@/common/module/applicationModule.js';
 
-export class GiftCardApi {
+export class GiftCardApi implements WebApi {
   private readonly _giftCardIssuing: GiftCardIssuing;
   private readonly _giftCardQueryService: GiftCardQueryService;
   private readonly _topUpRequesting: TopUpRequesting;

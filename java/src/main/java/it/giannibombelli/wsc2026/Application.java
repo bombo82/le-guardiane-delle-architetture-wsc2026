@@ -36,8 +36,8 @@ public final class Application {
     }
 
     private void wirePaymentResults() {
-        paymentModule.onPaymentResult(bookingModule::onPaymentResult);
-        paymentModule.onPaymentResult(giftCardModule::onPaymentResult);
+        paymentModule.onPaymentResult(bookingModule::handlePaymentResult);
+        paymentModule.onPaymentResult(giftCardModule::handlePaymentResult);
     }
 
     private void wireBookingResults() {
@@ -63,9 +63,10 @@ public final class Application {
             ctx.status(500).json(Map.of("error", "unexpected error"))
         );
 
-        bookingModule.configure(config);
-        giftCardModule.configure(config);
-        paymentModule.configure(config);
+        bookingModule.webApis().forEach(api -> api.configure(config));
+        giftCardModule.webApis().forEach(api -> api.configure(config));
+        paymentModule.webApis().forEach(api -> api.configure(config));
+        paymentModule.start();
     }
 
     public void stop() {

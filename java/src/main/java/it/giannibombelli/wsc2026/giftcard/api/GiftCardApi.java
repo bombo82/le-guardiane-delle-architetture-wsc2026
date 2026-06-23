@@ -5,6 +5,7 @@ import io.javalin.http.Context;
 import io.javalin.openapi.*;
 import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
+import it.giannibombelli.wsc2026.common.module.WebApi;
 import it.giannibombelli.wsc2026.giftcard.application.commands.IssueGiftCard;
 import it.giannibombelli.wsc2026.giftcard.application.commands.RequestGiftCardTopUp;
 import it.giannibombelli.wsc2026.giftcard.application.query.GiftCardDetails;
@@ -18,7 +19,7 @@ import java.util.UUID;
 import static io.javalin.apibuilder.ApiBuilder.get;
 import static io.javalin.apibuilder.ApiBuilder.post;
 
-public final class GiftCardApi {
+public final class GiftCardApi implements WebApi {
     private final GiftCardIssuing giftCardIssuing;
     private final GiftCardQueryService giftCardQueryService;
     private final TopUpRequesting topUpRequesting;
@@ -29,6 +30,7 @@ public final class GiftCardApi {
         this.topUpRequesting = topUpRequesting;
     }
 
+    @Override
     public void configure(JavalinConfig config) {
         config.routes.apiBuilder(() -> {
             post("/gift-cards", this::issue);

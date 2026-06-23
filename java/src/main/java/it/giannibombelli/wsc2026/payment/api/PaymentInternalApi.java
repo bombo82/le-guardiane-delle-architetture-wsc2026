@@ -5,6 +5,7 @@ import io.javalin.http.Context;
 import io.javalin.openapi.*;
 import it.giannibombelli.wsc2026.common.domain.primitive.ClientReference;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
+import it.giannibombelli.wsc2026.common.module.WebApi;
 import it.giannibombelli.wsc2026.common.domain.primitive.Timestamp;
 import it.giannibombelli.wsc2026.payment.application.commands.RequestPayment;
 import it.giannibombelli.wsc2026.payment.application.query.PaymentDetails;
@@ -23,7 +24,7 @@ import static java.util.Objects.requireNonNull;
  * Endpoint interni del Payment BC, separati da {@link PaymentApi} perché non fanno parte
  * del contratto pubblico.
  */
-public final class PaymentInternalApi {
+public final class PaymentInternalApi implements WebApi {
 
     private final PaymentRequesting paymentRequesting;
     private final PaymentFinder paymentFinder;
@@ -33,6 +34,7 @@ public final class PaymentInternalApi {
         this.paymentFinder = requireNonNull(paymentFinder);
     }
 
+    @Override
     public void configure(JavalinConfig config) {
         config.routes.apiBuilder(() -> {
             post("/internals/payments", this::create);

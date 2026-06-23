@@ -1,8 +1,7 @@
 // Payment Bounded Context: modulo applicativo con wiring manuale.
 
-import type { Express, ErrorRequestHandler } from 'express';
 import Database from 'better-sqlite3';
-import { ApplicationModule } from '@/common/module/applicationModule.js';
+import { ApplicationModule, type WebApi } from '@/common/module/applicationModule.js';
 import { PaymentApi } from './api/paymentApi.js';
 import { PaymentInternalApi } from './api/paymentInternalApi.js';
 import { PaymentFinder } from './application/query/paymentFinder.js';
@@ -50,8 +49,9 @@ export class PaymentModule extends ApplicationModule {
   private readonly _eventBus: InMemoryPaymentEventBus;
   private readonly _paymentRequesting: PaymentRequesting;
   private readonly _refundRequesting: RefundRequesting;
+  private readonly _paymentProcessing: PaymentProcessing;
+  private readonly _watcher: PaymentDeadlineWatcher;
   private readonly _paymentResultIntegrationHandlers: PaymentResultIntegrationHandler[];
-  private _watcher: PaymentDeadlineWatcher | null = null;
 
   constructor(database: Database.Database) {
     super();
@@ -63,6 +63,8 @@ export class PaymentModule extends ApplicationModule {
     this._eventBus = new InMemoryPaymentEventBus((task) => setImmediate(task));
     this._paymentRequesting = new PaymentRequesting(this._paymentRepository, this._eventBus);
     this._refundRequesting = new RefundRequesting(this._paymentRepository, this._eventBus);
+    this._paymentProcessing = this.createPaymentProcessing();
+    this._watcher = this.createWatcher();
     this.registerCrossBcResultHandlers();
   }
 
@@ -103,6 +105,37 @@ export class PaymentModule extends ApplicationModule {
     });
   }
 
+  private createPaymentProcessing(): PaymentProcessing {
+    const paymentCompletion = new PaymentCompletion();
+    const paymentRejection = new PaymentRejection();
+    const paymentExpiration = new PaymentExpiration();
+    const transactionRefund = new TransactionRefund();
+
+    const transactionAccepting = new TransactionAccepting(this._paymentRepository, this._eventBus, paymentCompletion);
+    const transactionRejecting = new TransactionRejecting(this._paymentRepository, this._eventBus, paymentRejection);
+    const paymentExpiring = new PaymentExpiring(this._paymentRepository, this._eventBus, paymentExpiration);
+
+    this._eventBus.subscribe('TransactionAccepted', transactionAccepting);
+    this._eventBus.subscribe('TransactionRejected', transactionRejecting);
+    this._eventBus.subscribe('PaymentDeadlineReached', paymentExpiring);
+
+    const providers: Record<string, PaymentProvider> = {
+      [Provider.PAYPAL]: new PayPal(),
+      [Provider.KLARNA]: new Klarna(),
+      [Provider.GIFT_CARD]: new GiftCard(),
+    };
+
+    const refundHandling = new RefundHandling(this._paymentRepository, providers, transactionRefund, this._eventBus);
+    this._eventBus.subscribe('RefundRequested', refundHandling);
+
+    return new PaymentProcessing(this._paymentRepository, providers, this._eventBus);
+  }
+
+  private createWatcher(): PaymentDeadlineWatcher {
+    const paymentExpiration = new PaymentExpiration();
+    return new PaymentDeadlineWatcher(this._paymentRepository, paymentExpiration, this._eventBus);
+  }
+
   onPaymentResult(handler: PaymentResultIntegrationHandler): void {
     requireDependency(handler, 'handler');
     this._paymentResultIntegrationHandlers.push(handler);
@@ -130,53 +163,19 @@ export class PaymentModule extends ApplicationModule {
     this._refundRequesting.invoke(internalCommand);
   }
 
-  configure(app: Express): void {
+  webApis(): WebApi[] {
     const paymentFinder = new PaymentFinder(this._paymentRepository);
+    return [
+      new PaymentApi(paymentFinder, this._paymentProcessing),
+      new PaymentInternalApi(this._paymentRequesting, paymentFinder),
+    ];
+  }
 
-    const paymentCompletion = new PaymentCompletion();
-    const paymentRejection = new PaymentRejection();
-    const paymentExpiration = new PaymentExpiration();
-    const transactionRefund = new TransactionRefund();
-
-    const transactionAccepting = new TransactionAccepting(this._paymentRepository, this._eventBus, paymentCompletion);
-    const transactionRejecting = new TransactionRejecting(this._paymentRepository, this._eventBus, paymentRejection);
-    const paymentExpiring = new PaymentExpiring(this._paymentRepository, this._eventBus, paymentExpiration);
-
-    this._eventBus.subscribe('TransactionAccepted', transactionAccepting);
-    this._eventBus.subscribe('TransactionRejected', transactionRejecting);
-    this._eventBus.subscribe('PaymentDeadlineReached', paymentExpiring);
-
-    const providers: Record<string, PaymentProvider> = {
-      [Provider.PAYPAL]: new PayPal(),
-      [Provider.KLARNA]: new Klarna(),
-      [Provider.GIFT_CARD]: new GiftCard(),
-    };
-
-    const refundHandling = new RefundHandling(this._paymentRepository, providers, transactionRefund, this._eventBus);
-    this._eventBus.subscribe('RefundRequested', refundHandling);
-
-    const paymentProcessing = new PaymentProcessing(this._paymentRepository, providers, this._eventBus);
-
-    const api = new PaymentApi(paymentFinder, paymentProcessing);
-    api.configure(app);
-
-    const internalApi = new PaymentInternalApi(this._paymentRequesting, paymentFinder);
-    internalApi.configure(app);
-
-    const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
-      if (err instanceof SyntaxError && 'body' in err) {
-        res.status(400).send('request body is required');
-        return;
-      }
-      next(err);
-    };
-    app.use(errorHandler);
-
-    this._watcher = new PaymentDeadlineWatcher(this._paymentRepository, paymentExpiration, this._eventBus);
+  start(): void {
     this._watcher.start();
   }
 
   stop(): void {
-    this._watcher?.stop();
+    this._watcher.stop();
   }
 }

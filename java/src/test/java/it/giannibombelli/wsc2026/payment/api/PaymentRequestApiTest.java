@@ -27,7 +27,7 @@ class PaymentRequestApiTest {
         final DataSource dataSource = DatabaseSetup.initializeFileDb("payment", getClass().getSimpleName());
         PaymentModule module = new PaymentModule(dataSource);
 
-        javalin.start(module::configure);
+        javalin.start(config -> module.webApis().forEach(api -> api.configure(config)));
     }
 
     @AfterAll

@@ -13,13 +13,14 @@ import it.giannibombelli.wsc2026.booking.domain.primitive.GiftCardReference;
 import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.Description;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
+import it.giannibombelli.wsc2026.common.module.WebApi;
 
 import java.util.UUID;
 
 import static io.javalin.apibuilder.ApiBuilder.get;
 import static io.javalin.apibuilder.ApiBuilder.post;
 
-public final class BookingApi {
+public final class BookingApi implements WebApi {
     private final BookingPlacing bookingPlacing;
     private final BookingQueryService bookingQueryService;
 
@@ -28,6 +29,7 @@ public final class BookingApi {
         this.bookingQueryService = bookingQueryService;
     }
 
+    @Override
     public void configure(JavalinConfig config) {
         config.routes.apiBuilder(() -> {
             post("/bookings", this::place);

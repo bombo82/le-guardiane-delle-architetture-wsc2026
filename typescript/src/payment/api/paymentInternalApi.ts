@@ -13,8 +13,9 @@ import { PaymentId } from '../domain/payment/paymentId.js';
 import { parseCreatePaymentRequest } from './createPaymentRequest.js';
 import { toPaymentDetailsResponse } from './paymentDetailsResponse.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
+import type { WebApi } from '@/common/module/applicationModule.js';
 
-export class PaymentInternalApi {
+export class PaymentInternalApi implements WebApi {
   private readonly _paymentRequesting: PaymentRequesting;
   private readonly _paymentFinder: PaymentFinder;
 

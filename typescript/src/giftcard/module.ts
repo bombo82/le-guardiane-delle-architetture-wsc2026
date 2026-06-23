@@ -1,8 +1,7 @@
 // GiftCard Bounded Context: modulo applicativo con wiring manuale.
 
-import type { Express } from 'express';
 import Database from 'better-sqlite3';
-import { ApplicationModule } from '@/common/module/applicationModule.js';
+import { ApplicationModule, type WebApi } from '@/common/module/applicationModule.js';
 import { GiftCardApi } from './api/giftCardApi.js';
 import { GiftCardQueryService } from './application/query/giftCardQueryService.js';
 import { CreditFromBooking } from './application/integration/booking/handlers/creditFromBooking.js';
@@ -51,7 +50,7 @@ export class GiftCardModule extends ApplicationModule {
     this._confirmTopUpFromPayment = this.createConfirmTopUpFromPayment();
   }
 
-  onPaymentResult(event: PaymentResultIntegrationEvent): void {
+  handlePaymentResult(event: PaymentResultIntegrationEvent): void {
     this._confirmTopUpFromPayment.handle(event);
   }
 
@@ -77,13 +76,11 @@ export class GiftCardModule extends ApplicationModule {
     this._refundFromBooking.handle(event);
   }
 
-  configure(app: Express): void {
+  webApis(): WebApi[] {
     const giftCardIssuing = new GiftCardIssuing(this._giftCardRepository);
     const topUpRequesting = new TopUpRequesting(this._giftCardRepository, this._eventBus);
     const giftCardQueryService = new GiftCardQueryService(this._giftCardRepository);
-
-    const api = new GiftCardApi(giftCardIssuing, giftCardQueryService, topUpRequesting);
-    api.configure(app);
+    return [new GiftCardApi(giftCardIssuing, giftCardQueryService, topUpRequesting)];
   }
 
   private createCreditFromBooking(): CreditFromBooking {

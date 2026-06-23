@@ -14,8 +14,9 @@ import { placeBooking } from '../application/commands/placeBooking.js';
 import { parsePlaceBookingRequest } from './placeBookingRequest.js';
 import { toBookingResponse } from './bookingResponse.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
+import type { WebApi } from '@/common/module/applicationModule.js';
 
-export class BookingApi {
+export class BookingApi implements WebApi {
   private readonly _bookingPlacing: BookingPlacing;
   private readonly _bookingQueryService: BookingQueryService;
 

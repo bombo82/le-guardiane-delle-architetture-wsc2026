@@ -2,11 +2,11 @@ package it.giannibombelli.wsc2026.giftcard;
 
 import it.giannibombelli.wsc2026.common.utils.Require;
 
-import io.javalin.config.JavalinConfig;
 import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultIntegrationEvent;
 import it.giannibombelli.wsc2026.common.application.events.EventBus;
 import it.giannibombelli.wsc2026.common.application.events.EventSubscriber;
 import it.giannibombelli.wsc2026.common.module.ApplicationModule;
+import it.giannibombelli.wsc2026.common.module.WebApi;
 import it.giannibombelli.wsc2026.giftcard.api.GiftCardApi;
 import it.giannibombelli.wsc2026.giftcard.application.integration.booking.adapter.BookingResult;
 import it.giannibombelli.wsc2026.giftcard.application.integration.booking.handlers.CreditFromBooking;
@@ -25,6 +25,7 @@ import it.giannibombelli.wsc2026.payment.integration.PaymentRequestIntegrationCo
 import it.giannibombelli.wsc2026.payment.integration.PaymentResultIntegrationEvent;
 
 import javax.sql.DataSource;
+import java.util.List;
 import java.util.function.Consumer;
 
 public final class GiftCardModule extends ApplicationModule {
@@ -48,7 +49,16 @@ public final class GiftCardModule extends ApplicationModule {
         this.confirmTopUpFromPayment = createConfirmTopUpFromPayment();
     }
 
-    public void onPaymentResult(PaymentResultIntegrationEvent event) {
+    @Override
+    public List<WebApi> webApis() {
+        GiftCardIssuing giftCardIssuing = new GiftCardIssuing(giftCardRepository);
+        TopUpRequesting topUpRequesting = new TopUpRequesting(giftCardRepository, eventBus);
+        GiftCardQueryService giftCardQueryService = new GiftCardQueryService(giftCardRepository);
+
+        return List.of(new GiftCardApi(giftCardIssuing, giftCardQueryService, topUpRequesting));
+    }
+
+    public void handlePaymentResult(PaymentResultIntegrationEvent event) {
         Require.requireArgument(event, "event");
         confirmTopUpFromPayment.handle(event);
     }
@@ -73,15 +83,6 @@ public final class GiftCardModule extends ApplicationModule {
     public void onBookingRejected(BookingResultIntegrationEvent.BookingRejectedIntegrationEvent event) {
         Require.requireArgument(event, "event");
         refundFromBooking.handle(event);
-    }
-
-    public void configure(JavalinConfig config) {
-        GiftCardIssuing giftCardIssuing = new GiftCardIssuing(giftCardRepository);
-        TopUpRequesting topUpRequesting = new TopUpRequesting(giftCardRepository, eventBus);
-        GiftCardQueryService giftCardQueryService = new GiftCardQueryService(giftCardRepository);
-
-        GiftCardApi api = new GiftCardApi(giftCardIssuing, giftCardQueryService, topUpRequesting);
-        api.configure(config);
     }
 
     private CreditFromBooking createCreditFromBooking() {

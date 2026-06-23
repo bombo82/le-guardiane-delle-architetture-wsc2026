@@ -549,16 +549,16 @@ Esempi di nuovi metodi pubblici:
 
 ```text
 booking.BookingModule
-  ├── onPaymentResult(Consumer<PaymentResultIntegrationEvent>)
+  ├── handlePaymentResult(PaymentResultIntegrationEvent)
   ├── onBookingPlaced(Consumer<PaymentRequestIntegrationCommand>)
   └── onBookingRefused(Consumer<RefundRequestIntegrationCommand>)
 
 giftcard.GiftCardModule
-  ├── onPaymentResult(Consumer<PaymentResultIntegrationEvent>)
+  ├── handlePaymentResult(PaymentResultIntegrationEvent)
   ├── onTopUpRequested(Consumer<PaymentRequestIntegrationCommand>)
-  ├── onBookingCompleted(Consumer<BookingCompletedIntegrationEvent>)
-  ├── onBookingRefused(Consumer<BookingRefusedIntegrationEvent>)
-  └── onBookingRejected(Consumer<BookingRejectedIntegrationEvent>)
+  ├── onBookingCompleted(BookingCompletedIntegrationEvent)
+  ├── onBookingRefused(BookingRefusedIntegrationEvent)
+  └── onBookingRejected(BookingRejectedIntegrationEvent)
 ```
 
 I dettagli interni (handler e adapter) restano privati e vengono cablati internamente dal modulo stesso.
@@ -566,9 +566,10 @@ I dettagli interni (handler e adapter) restano privati e vengono cablati interna
 Il wiring in `Application` diventa:
 
 ```java
-paymentModule.onPaymentResult(bookingModule::onPaymentResult);
-paymentModule.onPaymentResult(giftCardModule::onPaymentResult);
-bookingModule.onBookingResultIntegration(giftCardModule::onBookingCompleted);
+paymentModule.onPaymentResult(bookingModule::handlePaymentResult);
+paymentModule.onPaymentResult(giftCardModule::handlePaymentResult);
+bookingModule.onBookingCompletedIntegration(giftCardModule::onBookingCompleted);
+bookingModule.onBookingRefusedIntegration(giftCardModule::onBookingRefused);
 bookingModule.onBookingRejectedIntegration(giftCardModule::onBookingRejected);
 
 giftCardModule.onTopUpRequested(paymentModule::requestPayment);
@@ -590,7 +591,7 @@ La seconda verifica che `Application` non dipenda da classi in `..booking.applic
 
 ### Motivazione
 
-- **Superficie pubblica minima**: i moduli espongono solo operazioni semantiche (`onPaymentResult`, `onBookingCompleted`, ecc.), non oggetti implementativi.
+- **Superficie pubblica minima**: i moduli espongono solo operazioni semantiche (`onPaymentResult`, `handlePaymentResult`, `onBookingCompleted`, ecc.), non oggetti implementativi.
 - **Incapsulamento**: rinominare, scomporre o sostituire uno handler o un adapter interno non impatta `Application`.
 - **ACL al proprio posto**: l’Anti-Corruption Layer resta all’interno del modulo downstream, invece di essere invocato dal composition root.
 - **Wiring esplicito preservato**: il composition root continua a collegare i moduli a mano, senza framework di DI, ma lo fa tramite contratti stabili.
@@ -600,7 +601,19 @@ La seconda verifica che `Application` non dipenda da classi in `..booking.applic
 
 ## 9. Cosa non è stato ancora risolto
 
-Nel branch `solutions` non rimangono violazioni architetturali attive. Tutte le relazioni cross-BC sono state disaccoppiate tramite Published Language e Anti-Corruption Layer, e il Composition Root dipende solo dalla superficie pubblica dei moduli.
+Tutte le relazioni cross-BC sono state disaccoppiate tramite Published Language e Anti-Corruption Layer, il Composition Root dipende solo dalla superficie pubblica dei moduli, e le nuove regole AFF sulla definizione dei moduli sono ora tutte verdi.
+
+Delle questioni di **definizione dei moduli** evidenziate dalle nuove AFF:
+
+1. ✅ **`PaymentModule.watcher` / `_watcher` è `final`/`readonly`**: costruito nel costruttore e avviato separatamente.
+2. ✅ **`configure(...)` non fa più parte del contratto pubblico dei moduli**: `ApplicationModule` dichiara l'interfaccia comune `WebApi` e ogni modulo restituisce un adapter web che la implementa; il Composition Root chiama `configure()` sull'oggetto restituito.
+3. ✅ **Sottoscrizioni eventi interne spostate nel costruttore**: `configure()` si occupa solo di montare le rotte HTTP e avviare il watcher.
+4. ✅ **Error handler JSON spostato in `Application`** (TypeScript).
+5. ✅ **Asimmetria `onPaymentResult` risolta**: i moduli downstream espongono `handlePaymentResult`.
+
+Resta aperta una questione di design non bloccante:
+
+- **`PaymentModule.requestRefund` accede direttamente al repository** per cercare il pagamento da rimborsare. Tecnicamente è un gateway di integrazione, ma la query potrebbe essere spostata in un application service dedicato per maggiore coesione.
 
 ---
 

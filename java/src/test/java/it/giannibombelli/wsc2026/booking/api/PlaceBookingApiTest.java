@@ -22,7 +22,7 @@ class PlaceBookingApiTest {
         final DataSource dataSource = DatabaseSetup.initializeFileDb("booking", getClass().getSimpleName());
         final BookingModule module = new BookingModule(dataSource);
 
-        javalin.start(module::configure);
+        javalin.start(config -> module.webApis().forEach(api -> api.configure(config)));
     }
 
     @AfterAll

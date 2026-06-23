@@ -16,8 +16,9 @@ import { parseStartTransactionRequest } from './startTransactionRequest.js';
 import { toPaymentDetailsResponse } from './paymentDetailsResponse.js';
 import { toTransactionResponse } from './transactionResponse.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
+import type { WebApi } from '@/common/module/applicationModule.js';
 
-export class PaymentApi {
+export class PaymentApi implements WebApi {
   private readonly _paymentFinder: PaymentFinder;
   private readonly _paymentProcessing: PaymentProcessing;
 

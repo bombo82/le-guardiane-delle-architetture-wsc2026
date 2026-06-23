@@ -1,11 +1,9 @@
 // Punto di ingresso dell'applicazione Express.
 
-import express, { type ErrorRequestHandler } from 'express';
+import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { ApplicationModule } from './common/module/applicationModule.js';
 import { Application } from './application.js';
-import { DependencyNotProvidedError } from './common/errors/dependencyNotProvidedError.js';
-import { IllegalArgumentError } from './common/errors/illegalArgumentError.js';
 import { openapiSpecification } from './common/api/openapi.js';
 import Database from 'better-sqlite3';
 
@@ -40,23 +38,6 @@ function main(): void {
   app.use('/swagger', swaggerUi.serve, swaggerUi.setup(openapiSpecification));
 
   application.configure(app);
-
-  const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
-    if (err instanceof SyntaxError && 'body' in err) {
-      res.status(400).send('request body is required');
-      return;
-    }
-    if (err instanceof IllegalArgumentError) {
-      res.status(400).json({ error: err.message });
-      return;
-    }
-    if (err instanceof DependencyNotProvidedError) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    next(err);
-  };
-  app.use(errorHandler);
 
   const server = app.listen(port, () => {
     console.log(`Application started on http://localhost:${port}`);

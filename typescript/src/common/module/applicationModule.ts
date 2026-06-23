@@ -7,7 +7,17 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 
+/**
+ * Contratto comune per l'adapter web restituito da ciascun modulo.
+ * Il Composition Root chiama {@code configure(...)} per montare le rotte sul framework.
+ */
+export interface WebApi {
+  configure(app: Express): void;
+}
+
 export abstract class ApplicationModule {
+  abstract webApis(): WebApi[];
+
   static initializeDb(moduleName: string): Database.Database {
     const path = `data/${moduleName}/${moduleName}.db`;
     mkdirSync(dirname(path), { recursive: true });
@@ -18,8 +28,6 @@ export abstract class ApplicationModule {
 
     return database;
   }
-
-  abstract configure(app: Express): void;
 
   /**
    * Override in caso di clean-up necessario durante lo shutdown dell'applicazione,

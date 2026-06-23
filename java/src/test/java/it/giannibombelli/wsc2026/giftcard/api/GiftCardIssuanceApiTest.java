@@ -23,7 +23,7 @@ class GiftCardIssuanceApiTest {
         final DataSource dataSource = DatabaseSetup.initializeFileDb("giftcard", getClass().getSimpleName());
         GiftCardModule module = new GiftCardModule(dataSource);
 
-        javalin.start(module::configure);
+        javalin.start(config -> module.webApis().forEach(api -> api.configure(config)));
     }
 
     @AfterAll

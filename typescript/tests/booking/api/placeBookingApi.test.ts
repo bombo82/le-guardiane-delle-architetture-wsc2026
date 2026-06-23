@@ -11,7 +11,7 @@ describe('PlaceBookingApi', () => {
   beforeAll(() => {
     const database = DatabaseSetup.initializeFileDb('booking', 'PlaceBookingApiTest');
     module = new BookingModule(database);
-    module.configure(app);
+    module.webApis().forEach((api) => api.configure(app));
   });
 
   afterAll(() => {

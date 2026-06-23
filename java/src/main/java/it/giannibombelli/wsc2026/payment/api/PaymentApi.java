@@ -5,6 +5,7 @@ import io.javalin.http.Context;
 import io.javalin.openapi.*;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
 import it.giannibombelli.wsc2026.common.domain.primitive.Timestamp;
+import it.giannibombelli.wsc2026.common.module.WebApi;
 import it.giannibombelli.wsc2026.payment.application.commands.StartTransaction;
 import it.giannibombelli.wsc2026.payment.application.query.PaymentDetails;
 import it.giannibombelli.wsc2026.payment.application.query.PaymentFinder;
@@ -19,7 +20,7 @@ import java.util.UUID;
 import static io.javalin.apibuilder.ApiBuilder.get;
 import static io.javalin.apibuilder.ApiBuilder.post;
 
-public final class PaymentApi {
+public final class PaymentApi implements WebApi {
     private final PaymentFinder paymentFinder;
     private final PaymentProcessing paymentProcessing;
 
@@ -28,6 +29,7 @@ public final class PaymentApi {
         this.paymentProcessing = paymentProcessing;
     }
 
+    @Override
     public void configure(JavalinConfig config) {
         config.routes.apiBuilder(() -> {
             get("/payments/{id}", this::getById);

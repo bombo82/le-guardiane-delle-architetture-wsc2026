@@ -11,7 +11,7 @@ describe('PaymentTransactionApi', () => {
   beforeAll(() => {
     const database = DatabaseSetup.initializeFileDb('payment', 'PaymentTransactionApiTest');
     module = new PaymentModule(database);
-    module.configure(app);
+    module.webApis().forEach((api) => api.configure(app));
   });
 
   afterAll(() => {

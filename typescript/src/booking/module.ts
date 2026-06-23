@@ -1,8 +1,7 @@
 // Booking Bounded Context: modulo applicativo con wiring manuale.
 
-import type { Express } from 'express';
 import Database from 'better-sqlite3';
-import { ApplicationModule } from '@/common/module/applicationModule.js';
+import { ApplicationModule, type WebApi } from '@/common/module/applicationModule.js';
 import { BookingApi } from './api/bookingApi.js';
 import { BookingQueryService } from './application/query/bookingQueryService.js';
 import { HandlePaymentResultFromPayment } from './application/integration/payment/handlers/handlePaymentResultFromPayment.js';
@@ -43,7 +42,7 @@ export class BookingModule extends ApplicationModule {
     this._handlePaymentResultFromPayment = this.createHandlePaymentResultFromPayment();
   }
 
-  onPaymentResult(event: PaymentResultIntegrationEvent): void {
+  handlePaymentResult(event: PaymentResultIntegrationEvent): void {
     this._handlePaymentResultFromPayment.handle(event);
   }
 
@@ -97,12 +96,10 @@ export class BookingModule extends ApplicationModule {
     });
   }
 
-  configure(app: Express): void {
+  webApis(): WebApi[] {
     const bookingPlacing = new BookingPlacing(this._bookingRepository, this._eventBus);
     const bookingQueryService = new BookingQueryService(this._bookingRepository);
-
-    const api = new BookingApi(bookingPlacing, bookingQueryService);
-    api.configure(app);
+    return [new BookingApi(bookingPlacing, bookingQueryService)];
   }
 
   private createHandlePaymentResultFromPayment(): HandlePaymentResultFromPayment {

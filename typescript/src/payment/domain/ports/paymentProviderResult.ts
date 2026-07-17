@@ -1,5 +1,3 @@
-// Risultato restituito da un PaymentProvider.
-
 import { Description } from '@/common/domain/primitive/description.js';
 import { Timestamp } from '@/common/domain/primitive/timestamp.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';

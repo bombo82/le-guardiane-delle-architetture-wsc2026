@@ -1,5 +1,3 @@
-// Command per richiedere un nuovo pagamento.
-
 import type { Command } from '@/common/application/command.js';
 import type { ClientReference } from '@/common/domain/primitive/clientReference.js';
 import type { Money } from '@/common/domain/primitive/money.js';

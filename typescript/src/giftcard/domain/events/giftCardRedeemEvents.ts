@@ -1,5 +1,3 @@
-// Eventi emessi quando un riscatto della gift card riesce o fallisce.
-
 import { Description } from '@/common/domain/primitive/description.js';
 import type { Event } from '@/common/domain/model/event.js';
 import type { Money } from '@/common/domain/primitive/money.js';

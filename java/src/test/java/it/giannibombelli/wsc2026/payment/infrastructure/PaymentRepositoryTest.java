@@ -24,7 +24,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Verifica il contratto del repository senza ripetere le regole di business di dominio.
+ * Contratto del repository; le regole di business di dominio sono testate altrove.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PaymentRepositoryTest {

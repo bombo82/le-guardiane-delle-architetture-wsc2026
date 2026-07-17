@@ -1,5 +1,3 @@
-// Caso d'uso per l'emissione di una gift card.
-
 import type { UseCase } from '@/common/application/usecase.js';
 import { GiftCard } from '../../domain/giftcard/giftCard.js';
 import { GiftCardIssued, giftCardIssued } from '../../domain/events/giftCardIssued.js';

@@ -1,5 +1,3 @@
-// Command per emettere una nuova gift card.
-
 import type { Command } from '@/common/application/command.js';
 import type { GiftCardId } from '../../domain/giftcard/giftCardId.js';
 import { requireArgument } from '@/common/utils/requireArgument.js';

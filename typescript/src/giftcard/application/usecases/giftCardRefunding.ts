@@ -1,5 +1,3 @@
-// Caso d'uso per il rimborso di una gift card.
-
 import type { UseCase } from '@/common/application/usecase.js';
 import type { GiftCardRefunded } from '../../domain/events/giftCardRefunded.js';
 import { GiftCardId } from '../../domain/giftcard/giftCardId.js';

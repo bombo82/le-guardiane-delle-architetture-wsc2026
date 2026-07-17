@@ -1,5 +1,3 @@
-// Eventi di risultato del ciclo di vita di un pagamento.
-
 import type { Event } from '@/common/domain/model/event.js';
 import type { ClientReference } from '@/common/domain/primitive/clientReference.js';
 import type { Description } from '@/common/domain/primitive/description.js';

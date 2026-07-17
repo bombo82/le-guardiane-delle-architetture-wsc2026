@@ -6,9 +6,6 @@ import it.giannibombelli.wsc2026.common.domain.primitive.Description;
 import it.giannibombelli.wsc2026.common.domain.primitive.Money;
 import it.giannibombelli.wsc2026.giftcard.domain.giftcard.GiftCardId;
 
-/**
- * Sealed interface so the aggregate can return exactly one of the two possible outcomes.
- */
 public sealed interface GiftCardRedeemEvents extends GiftCardEvent
     permits GiftCardRedeemEvents.GiftCardRedeemed, GiftCardRedeemEvents.GiftCardNotRedeemed {
 

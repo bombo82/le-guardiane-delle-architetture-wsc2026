@@ -1,5 +1,3 @@
-// Porta per la persistenza degli aggregati Payment.
-
 import type { ClientReference } from '@/common/domain/primitive/clientReference.js';
 import type { Timestamp } from '@/common/domain/primitive/timestamp.js';
 import type { Payment } from '../payment/payment.js';

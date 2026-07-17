@@ -1,5 +1,3 @@
-// Evento emesso quando una transazione viene accettata dal provider.
-
 import type { Event } from '@/common/domain/model/event.js';
 import type { Money } from '@/common/domain/primitive/money.js';
 import type { Timestamp } from '@/common/domain/primitive/timestamp.js';

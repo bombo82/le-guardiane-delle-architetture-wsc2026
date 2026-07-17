@@ -1,5 +1,3 @@
-// Factory di aggregati per i test del GiftCard Bounded Context.
-
 import { generateId } from '@/common/domain/identity/entityId.js';
 import { Money } from '@/common/domain/primitive/money.js';
 import { BookingId } from '@/booking/domain/booking/bookingId.js';

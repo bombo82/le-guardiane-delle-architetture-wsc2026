@@ -1,5 +1,3 @@
-// Caso d'uso per la conferma della ricarica di una gift card.
-
 import type { UseCase } from '@/common/application/usecase.js';
 import type { TopUpConfirmed } from '../../domain/events/topUpConfirmed.js';
 import { GiftCardId } from '../../domain/giftcard/giftCardId.js';

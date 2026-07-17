@@ -1,5 +1,3 @@
-// Utility per creare database SQLite isolati per i test.
-
 import { mkdirSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';

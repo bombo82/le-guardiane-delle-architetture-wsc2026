@@ -1,5 +1,3 @@
-// Evento di dominio base per il GiftCard Bounded Context.
-
 import type { GiftCardIssued } from './giftCardIssued.js';
 import type { GiftCardTopUpRequested } from './giftCardTopUpRequested.js';
 import type { TopUpConfirmed } from './topUpConfirmed.js';

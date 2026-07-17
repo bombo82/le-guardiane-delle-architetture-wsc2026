@@ -1,5 +1,3 @@
-// Evento emesso quando viene avviata una transazione di pagamento.
-
 import type { Event } from '@/common/domain/model/event.js';
 import type { Money } from '@/common/domain/primitive/money.js';
 import type { PaymentId } from '../payment/paymentId.js';

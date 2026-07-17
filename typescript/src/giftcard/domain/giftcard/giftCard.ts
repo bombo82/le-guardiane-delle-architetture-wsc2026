@@ -1,5 +1,3 @@
-// Aggregato GiftCard: emette e gestisce il saldo di una gift card.
-
 import { Description } from '@/common/domain/primitive/description.js';
 import { Money } from '@/common/domain/primitive/money.js';
 import { GiftCardCredited, giftCardCredited } from '../events/giftCardCredited.js';

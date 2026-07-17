@@ -1,5 +1,4 @@
-// Event bus in-memory specializzato per PaymentEvent.
-// Supporta dispatch sincrono nei test e asincrono in produzione tramite Executor.
+// L'Executor iniettato consente il dispatch sincrono nei test e asincrono in produzione.
 
 import type { EventBus } from '@/common/application/events/eventBus.js';
 import type { EventSubscriber } from '@/common/application/events/eventSubscriber.js';

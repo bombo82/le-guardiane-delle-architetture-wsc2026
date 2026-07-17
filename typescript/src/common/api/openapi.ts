@@ -1,5 +1,3 @@
-// Configurazione centrale per la generazione della specifica OpenAPI.
-
 import swaggerJsdoc from 'swagger-jsdoc';
 
 const options: swaggerJsdoc.Options = {

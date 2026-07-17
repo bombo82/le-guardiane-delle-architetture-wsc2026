@@ -9,9 +9,8 @@ import java.util.UUID;
 
 public sealed interface PaymentProviderResult {
     /**
-     * Success result returned by PaymentProvider implementations.
-     * The key per spec: providerCompletedAt is the datum supplied by the provider that drives the 48h
-     * window calculation inside the Payment aggregate. It is **not** the AcceptTransaction command wall time.
+     * {@code providerCompletedAt} è il dato fornito dal provider che determina la finestra delle 48h
+     * nell'aggregato Payment: non è il wall-clock del comando AcceptTransaction.
      */
     record Success(UUID transactionId, Timestamp providerCompletedAt) implements PaymentProviderResult {
         public Success {

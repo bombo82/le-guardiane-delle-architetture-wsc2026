@@ -1,5 +1,3 @@
-// Command per accettare una transazione.
-
 import type { Command } from '@/common/application/command.js';
 import type { Timestamp } from '@/common/domain/primitive/timestamp.js';
 import type { PaymentId } from '../../domain/payment/paymentId.js';

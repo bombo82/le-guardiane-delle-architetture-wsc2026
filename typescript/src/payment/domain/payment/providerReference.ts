@@ -1,4 +1,4 @@
-// Riferimento opaco fornito dal provider di pagamento.
+// Riferimento opaco: ha significato solo per il provider, payment non lo interpreta.
 
 import { requireArgument } from '@/common/utils/requireArgument.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';

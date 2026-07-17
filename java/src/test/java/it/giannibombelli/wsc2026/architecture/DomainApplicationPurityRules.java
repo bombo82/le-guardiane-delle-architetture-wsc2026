@@ -14,10 +14,6 @@ import java.util.Set;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 
-/**
- * Regole condivise per la verifica della purezza dei layer domain/application
- * all'interno di un singolo Bounded Context.
- */
 public final class DomainApplicationPurityRules {
 
     private static final Set<String> JAVA_WRAPPERS = Set.of(

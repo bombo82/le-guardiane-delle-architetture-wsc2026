@@ -1,6 +1,3 @@
-// Aggregato Payment: gestisce il ciclo di vita di una richiesta di pagamento,
-// delle transazioni e dei rimborsi.
-
 import { ClientReference } from '@/common/domain/primitive/clientReference.js';
 import { Description } from '@/common/domain/primitive/description.js';
 import { Money } from '@/common/domain/primitive/money.js';

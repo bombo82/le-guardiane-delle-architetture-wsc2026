@@ -10,9 +10,6 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.UUID;
 
-/**
- * Crea database SQLite isolati per i test. Ogni test gestisce il proprio lifecycle.
- */
 public final class DatabaseSetup {
 
     private static final Path DATA_DIR = Path.of("data");
@@ -40,7 +37,7 @@ public final class DatabaseSetup {
     }
 
     public static DataSource initializeInMemoryDb(String moduleName) {
-        // Use a unique name and cache=shared to allow multiple connections to the same in-memory DB
+        // Nome univoco e cache=shared permettono a più connessioni di condividere lo stesso DB in-memory
         String uniqueDbName = UUID.randomUUID().toString();
 
         SQLiteDataSource dataSource = new SQLiteDataSource();

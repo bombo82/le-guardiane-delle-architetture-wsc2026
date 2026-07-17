@@ -1,5 +1,3 @@
-// Driver API per i test E2E: nasconde i dettagli HTTP e fornisce helper di dominio.
-
 import type { GiftCardResponse } from '../../../src/giftcard/api/giftCardResponse.js';
 import type { BookingResponse } from '../../../src/booking/api/bookingResponse.js';
 import type { PaymentDetailsResponse } from '../../../src/payment/api/paymentDetailsResponse.js';

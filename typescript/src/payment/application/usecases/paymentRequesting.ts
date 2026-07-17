@@ -1,5 +1,3 @@
-// Caso d'uso per richiedere un nuovo pagamento.
-
 import type { UseCase } from '@/common/application/usecase.js';
 import type { EventPublisher } from '@/common/application/events/eventPublisher.js';
 import { PaymentRequested, paymentRequested } from '../../domain/events/paymentRequested.js';

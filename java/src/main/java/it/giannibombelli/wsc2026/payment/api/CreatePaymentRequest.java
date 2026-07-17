@@ -5,10 +5,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Internal request DTO for creating a Payment.
- * <p>
- * This endpoint is intentionally exposed only for internal/test setup purposes and
- * is not part of the public customer-facing API surface.
+ * DTO dell'endpoint interno di creazione pagamento: esposto intenzionalmente solo per
+ * setup/test, non fa parte dell'API pubblica.
  */
 public record CreatePaymentRequest(UUID paymentId, String clientReference, BigDecimal amount, Instant requestedAt) {
 }

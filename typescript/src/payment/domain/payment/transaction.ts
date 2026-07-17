@@ -1,5 +1,3 @@
-// Value Object/Entity Transaction all'interno dell'aggregato Payment.
-
 import { Money } from '@/common/domain/primitive/money.js';
 import { Timestamp } from '@/common/domain/primitive/timestamp.js';
 import { Provider } from './provider.js';

@@ -1,5 +1,3 @@
-// Command per rifiutare una transazione.
-
 import type { Command } from '@/common/application/command.js';
 import type { Description } from '@/common/domain/primitive/description.js';
 import type { PaymentId } from '../../domain/payment/paymentId.js';

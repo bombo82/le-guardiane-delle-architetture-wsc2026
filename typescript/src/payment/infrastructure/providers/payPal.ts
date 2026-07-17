@@ -1,4 +1,4 @@
-// Adapter per il provider PayPal (stub di successo).
+// Stub didattico di PayPal: simula un provider che ha sempre successo.
 
 import { Timestamp } from '@/common/domain/primitive/timestamp.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';

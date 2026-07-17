@@ -1,7 +1,5 @@
-// Schemas OpenAPI condivisi per i DTO request/response.
-// In Java i DTO non hanno annotazioni OpenAPI proprie; le definizioni dei tipi
-// sono referenziate nelle annotazioni dei controller. Per parità, gli schemas
-// sono centralizzati qui vicino alla configurazione OpenAPI.
+// Schemas OpenAPI condivisi, centralizzati qui per parità con Java,
+// dove sono referenziati dalle annotazioni OpenAPI dei controller.
 
 /**
  * @swagger

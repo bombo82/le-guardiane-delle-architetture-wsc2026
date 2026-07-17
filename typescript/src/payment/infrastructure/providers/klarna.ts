@@ -1,4 +1,4 @@
-// Adapter per il provider Klarna (stub di successo).
+// Stub didattico di Klarna: simula un provider che ha sempre successo.
 
 import { Timestamp } from '@/common/domain/primitive/timestamp.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';

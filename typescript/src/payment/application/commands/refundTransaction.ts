@@ -1,5 +1,3 @@
-// Command per richiedere un rimborso.
-
 import type { Command } from '@/common/application/command.js';
 import type { Money } from '@/common/domain/primitive/money.js';
 import type { PaymentId } from '../../domain/payment/paymentId.js';

@@ -1,5 +1,3 @@
-// DTO di risposta per un Payment con il dettaglio delle sue transazioni.
-
 import { PaymentDetails } from '../application/query/paymentDetails.js';
 import { toTransactionResponse, type TransactionResponse } from './transactionResponse.js';
 

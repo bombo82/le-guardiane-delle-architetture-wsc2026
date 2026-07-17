@@ -1,5 +1,3 @@
-// Caso d'uso per la richiesta di ricarica di una gift card.
-
 import type { EventPublisher } from '@/common/application/events/eventPublisher.js';
 import type { UseCase } from '@/common/application/usecase.js';
 import { GiftCardEvent } from '../../domain/events/giftCardEvent.js';

@@ -1,5 +1,3 @@
-// Command per avviare una transazione su un pagamento.
-
 import type { Command } from '@/common/application/command.js';
 import type { Money } from '@/common/domain/primitive/money.js';
 import type { Timestamp } from '@/common/domain/primitive/timestamp.js';

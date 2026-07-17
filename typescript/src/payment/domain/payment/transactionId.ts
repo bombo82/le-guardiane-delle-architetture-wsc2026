@@ -1,5 +1,3 @@
-// Identità di una Transaction all'interno di un Payment.
-
 import { requireArgument } from '@/common/utils/requireArgument.js';
 import type { EntityId } from '@/common/domain/identity/entityId.js';
 import { Uuid } from '@/common/domain/primitive/uuid.js';

@@ -1,5 +1,4 @@
 import { requireArgument } from '@/common/utils/requireArgument.js';
-// Stati dell'aggregato Payment.
 
 export const PaymentStatus = {
   REQUESTED: 'REQUESTED',

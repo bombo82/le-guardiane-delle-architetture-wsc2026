@@ -1,5 +1,3 @@
-// Porta per i provider di pagamento esterni.
-
 import { Uuid } from '@/common/domain/primitive/uuid.js';
 import type { Money } from '@/common/domain/primitive/money.js';
 import type { PaymentProviderResult } from './paymentProviderResult.js';

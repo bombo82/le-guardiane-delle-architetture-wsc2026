@@ -1,5 +1,3 @@
-// Evento emesso quando una transazione viene rifiutata dal provider.
-
 import type { Event } from '@/common/domain/model/event.js';
 import type { Description } from '@/common/domain/primitive/description.js';
 import type { PaymentId } from '../payment/paymentId.js';

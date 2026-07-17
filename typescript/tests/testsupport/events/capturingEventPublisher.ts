@@ -1,5 +1,3 @@
-// Publisher di test che cattura gli eventi pubblicati.
-
 import type { EventPublisher } from '@/common/application/events/eventPublisher.js';
 
 export class CapturingEventPublisher<T> implements EventPublisher<T> {

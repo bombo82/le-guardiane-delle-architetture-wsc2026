@@ -1,5 +1,3 @@
-// Evento di dominio base per il Payment Bounded Context.
-
 import type { PaymentRequested } from './paymentRequested.js';
 import type { RefundRequested } from './refundRequested.js';
 import type { PaymentDeadlineReached } from './paymentDeadlineReached.js';

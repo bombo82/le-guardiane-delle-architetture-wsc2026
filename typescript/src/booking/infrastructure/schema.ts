@@ -1,5 +1,3 @@
-// Schema Drizzle per il Booking Bounded Context.
-
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const bookings = sqliteTable('booking', {

@@ -1,5 +1,3 @@
-// Evento emesso quando viene richiesto un nuovo pagamento.
-
 import type { Event } from '@/common/domain/model/event.js';
 import type { ClientReference } from '@/common/domain/primitive/clientReference.js';
 import type { Money } from '@/common/domain/primitive/money.js';

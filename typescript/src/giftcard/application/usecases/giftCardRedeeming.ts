@@ -1,5 +1,3 @@
-// Caso d'uso per il riscatto di una gift card.
-
 import type { UseCase } from '@/common/application/usecase.js';
 import type { GiftCardRedeemEvent } from '../../domain/events/giftCardRedeemEvents.js';
 import { GiftCardId } from '../../domain/giftcard/giftCardId.js';

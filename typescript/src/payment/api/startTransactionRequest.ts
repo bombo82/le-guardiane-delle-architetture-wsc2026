@@ -1,5 +1,3 @@
-// DTO di richiesta per l'avvio di una transazione.
-
 export type StartTransactionRequest = {
   readonly provider: string;
   readonly providerReference: string | null;

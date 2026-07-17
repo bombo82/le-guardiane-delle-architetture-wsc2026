@@ -1,5 +1,3 @@
-// DTO di richiesta per una ricarica.
-
 export type RequestTopUpRequest = {
   readonly amount: number;
 };

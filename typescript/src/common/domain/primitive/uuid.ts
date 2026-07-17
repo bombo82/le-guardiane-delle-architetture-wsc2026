@@ -1,5 +1,3 @@
-// Value object che rappresenta un UUID.
-
 import { randomUUID } from 'node:crypto';
 import { requireArgument } from '@/common/utils/requireArgument.js';
 

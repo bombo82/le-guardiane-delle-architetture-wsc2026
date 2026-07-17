@@ -18,9 +18,6 @@ import javax.sql.DataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Verifica che la specifica OpenAPI e Swagger UI siano esposte correttamente.
- */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class OpenApiSpecTest {
 

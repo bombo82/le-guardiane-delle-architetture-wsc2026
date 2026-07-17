@@ -1,5 +1,3 @@
-// Query service per recuperare i Payment in forma di read model.
-
 import { ClientReference } from '@/common/domain/primitive/clientReference.js';
 import { Payment } from '../../domain/payment/payment.js';
 import { PaymentId } from '../../domain/payment/paymentId.js';

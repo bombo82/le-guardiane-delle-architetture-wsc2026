@@ -1,5 +1,4 @@
-// Schema Drizzle per il Payment Bounded Context.
-// Replica lo schema finale delle migrazioni Flyway V1-V6.
+// Schema Drizzle del BC payment: deve replicare le migrazioni Flyway V1-V6 del modulo Java.
 
 import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 

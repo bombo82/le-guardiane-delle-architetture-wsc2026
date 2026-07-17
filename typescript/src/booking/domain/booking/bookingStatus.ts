@@ -1,5 +1,3 @@
-// Stati del ciclo di vita di una prenotazione.
-
 export const BookingStatus = {
   PLACED: 'PLACED',
   CONFIRMED: 'CONFIRMED',

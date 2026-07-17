@@ -1,5 +1,3 @@
-// Helper per avviare un'app Express su porta random e inviare richieste nei test.
-
 import express, { type Express, type ErrorRequestHandler } from 'express';
 import http from 'node:http';
 

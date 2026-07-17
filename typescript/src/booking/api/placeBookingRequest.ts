@@ -1,5 +1,3 @@
-// DTO di richiesta per l'inserimento di una prenotazione.
-
 export type PlaceBookingRequest = {
   readonly amount: number;
   readonly description: string;

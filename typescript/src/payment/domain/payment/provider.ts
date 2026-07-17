@@ -1,5 +1,4 @@
 import { requireArgument } from '@/common/utils/requireArgument.js';
-// Provider di pagamento supportati.
 
 export const Provider = {
   PAYPAL: 'PayPal',

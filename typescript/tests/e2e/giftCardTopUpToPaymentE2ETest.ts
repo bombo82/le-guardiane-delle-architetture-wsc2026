@@ -1,5 +1,3 @@
-// Test E2E: flusso GiftCard top-up -> Payment.
-
 import { beforeAll, afterAll, describe, it } from 'vitest';
 import { Application } from '../../src/application.js';
 import { DatabaseSetup } from '../testsupport/databaseSetup.js';

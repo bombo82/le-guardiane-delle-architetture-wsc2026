@@ -1,5 +1,3 @@
-// Evento emesso quando una gift card viene rimborsata.
-
 import type { Event } from '@/common/domain/model/event.js';
 import type { Money } from '@/common/domain/primitive/money.js';
 import type { GiftCardId } from '../giftcard/giftCardId.js';

@@ -1,5 +1,3 @@
-// DTO di richiesta per la creazione interna di un Payment.
-
 export type CreatePaymentRequest = {
   readonly paymentId: string;
   readonly clientReference: string;

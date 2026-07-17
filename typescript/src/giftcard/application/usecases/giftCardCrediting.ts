@@ -1,5 +1,3 @@
-// Caso d'uso per l'accredito di una gift card.
-
 import type { UseCase } from '@/common/application/usecase.js';
 import type { GiftCardCredited } from '../../domain/events/giftCardCredited.js';
 import { GiftCardId } from '../../domain/giftcard/giftCardId.js';

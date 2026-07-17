@@ -1,5 +1,4 @@
 import { requireArgument } from '@/common/utils/requireArgument.js';
-// Stati di una Transaction.
 
 export const TransactionStatus = {
   STARTED: 'STARTED',

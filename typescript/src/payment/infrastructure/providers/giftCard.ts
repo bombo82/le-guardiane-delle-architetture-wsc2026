@@ -1,4 +1,4 @@
-// Adapter per il provider GiftCard (stub che richiede un riferimento).
+// Stub didattico di GiftCard: fallisce se manca il riferimento alla gift card.
 
 import { Description } from '@/common/domain/primitive/description.js';
 import { Timestamp } from '@/common/domain/primitive/timestamp.js';

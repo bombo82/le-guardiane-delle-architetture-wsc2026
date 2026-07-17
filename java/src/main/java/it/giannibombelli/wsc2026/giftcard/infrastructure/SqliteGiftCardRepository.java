@@ -34,7 +34,7 @@ public final class SqliteGiftCardRepository implements GiftCardRepository {
         String idStr = giftCard.id().value().toString();
         BigDecimal bal = giftCard.balance().value();
 
-        // Upsert (PK exists → update; else insert) — deliberate simplicity for the workshop vertical.
+        // Upsert volutamente semplice: update, poi insert se nessuna riga è stata aggiornata.
         int updated = dsl.update(GIFT_CARD)
             .set(BALANCE, bal)
             .where(ID.eq(idStr))

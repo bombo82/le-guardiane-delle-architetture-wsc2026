@@ -1,5 +1,3 @@
-// Factory di aggregati per i test del Payment Bounded Context.
-
 import { generateId } from '@/common/domain/identity/entityId.js';
 import { ClientReference } from '@/common/domain/primitive/clientReference.js';
 import { Money } from '@/common/domain/primitive/money.js';

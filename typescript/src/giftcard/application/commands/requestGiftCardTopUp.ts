@@ -1,5 +1,3 @@
-// Command per richiedere una ricarica della gift card.
-
 import type { Command } from '@/common/application/command.js';
 import type { Money } from '@/common/domain/primitive/money.js';
 import type { GiftCardId } from '../../domain/giftcard/giftCardId.js';

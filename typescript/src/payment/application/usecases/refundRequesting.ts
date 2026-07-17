@@ -1,5 +1,3 @@
-// Caso d'uso per richiedere un rimborso.
-
 import type { UseCase } from '@/common/application/usecase.js';
 import type { EventPublisher } from '@/common/application/events/eventPublisher.js';
 import { PaymentEvent } from '../../domain/events/paymentEvent.js';

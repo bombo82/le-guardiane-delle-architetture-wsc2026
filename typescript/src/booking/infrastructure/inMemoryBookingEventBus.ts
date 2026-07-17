@@ -1,5 +1,4 @@
-// Event bus in-memory specializzato per BookingEvent.
-// Supporta dispatch sincrono nei test e configurabile in produzione tramite Executor.
+// L'Executor iniettato permette il dispatch sincrono nei test e configurabile in produzione.
 
 import type { EventBus } from '@/common/application/events/eventBus.js';
 import type { EventSubscriber } from '@/common/application/events/eventSubscriber.js';

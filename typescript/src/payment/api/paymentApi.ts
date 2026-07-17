@@ -1,5 +1,3 @@
-// API pubbliche del Payment Bounded Context.
-
 import express, { type Express, type Request, type Response } from 'express';
 import { getErrorMessage } from '@/common/api/errorMessage.js';
 import { Money } from '@/common/domain/primitive/money.js';
@@ -16,8 +14,9 @@ import { parseStartTransactionRequest } from './startTransactionRequest.js';
 import { toPaymentDetailsResponse } from './paymentDetailsResponse.js';
 import { toTransactionResponse } from './transactionResponse.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
+import type { WebApi } from '@/common/module/applicationModule.js';
 
-export class PaymentApi {
+export class PaymentApi implements WebApi {
   private readonly _paymentFinder: PaymentFinder;
   private readonly _paymentProcessing: PaymentProcessing;
 

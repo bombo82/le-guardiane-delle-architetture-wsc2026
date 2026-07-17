@@ -1,5 +1,3 @@
-// API pubbliche del Booking Bounded Context.
-
 import express, { type Express, type ErrorRequestHandler, type Request, type Response } from 'express';
 import { getErrorMessage } from '@/common/api/errorMessage.js';
 import { generateId } from '@/common/domain/identity/entityId.js';
@@ -14,8 +12,9 @@ import { placeBooking } from '../application/commands/placeBooking.js';
 import { parsePlaceBookingRequest } from './placeBookingRequest.js';
 import { toBookingResponse } from './bookingResponse.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
+import type { WebApi } from '@/common/module/applicationModule.js';
 
-export class BookingApi {
+export class BookingApi implements WebApi {
   private readonly _bookingPlacing: BookingPlacing;
   private readonly _bookingQueryService: BookingQueryService;
 

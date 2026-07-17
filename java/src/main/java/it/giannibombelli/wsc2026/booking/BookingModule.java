@@ -1,6 +1,5 @@
 package it.giannibombelli.wsc2026.booking;
 
-import io.javalin.config.JavalinConfig;
 import it.giannibombelli.wsc2026.booking.api.BookingApi;
 import it.giannibombelli.wsc2026.booking.application.integration.payment.adapter.PaymentRequest;
 import it.giannibombelli.wsc2026.booking.application.integration.payment.adapter.PaymentResult;
@@ -20,12 +19,14 @@ import it.giannibombelli.wsc2026.booking.integration.giftcard.BookingResultInteg
 import it.giannibombelli.wsc2026.common.application.events.EventBus;
 import it.giannibombelli.wsc2026.common.application.events.EventSubscriber;
 import it.giannibombelli.wsc2026.common.module.ApplicationModule;
+import it.giannibombelli.wsc2026.common.module.WebApi;
 import it.giannibombelli.wsc2026.common.utils.Require;
 import it.giannibombelli.wsc2026.payment.integration.PaymentRequestIntegrationCommand;
 import it.giannibombelli.wsc2026.payment.integration.PaymentResultIntegrationEvent;
 import it.giannibombelli.wsc2026.payment.integration.RefundRequestIntegrationCommand;
 
 import javax.sql.DataSource;
+import java.util.List;
 import java.util.function.Consumer;
 
 public final class BookingModule extends ApplicationModule {
@@ -42,7 +43,15 @@ public final class BookingModule extends ApplicationModule {
         this.handlePaymentResultFromPayment = createHandlePaymentResultFromPayment();
     }
 
-    public void onPaymentResult(PaymentResultIntegrationEvent event) {
+    @Override
+    public List<WebApi> webApis() {
+        BookingPlacing bookingPlacing = new BookingPlacing(bookingRepository, eventBus);
+        BookingQueryService bookingQueryService = new BookingQueryService(bookingRepository);
+
+        return List.of(new BookingApi(bookingPlacing, bookingQueryService));
+    }
+
+    public void handlePaymentResult(PaymentResultIntegrationEvent event) {
         Require.requireArgument(event, "event");
         handlePaymentResultFromPayment.handle(event);
     }
@@ -80,14 +89,6 @@ public final class BookingModule extends ApplicationModule {
         eventBus.subscribe(BookingResultEvents.BookingRejected.class,
             (EventSubscriber<BookingResultEvents.BookingRejected>) event ->
                 guarded.accept(new BookingResultIntegrationEvent.BookingRejectedIntegrationEvent(event.giftCardReference(), event.amount())));
-    }
-
-    public void configure(JavalinConfig config) {
-        BookingPlacing bookingPlacing = new BookingPlacing(bookingRepository, eventBus);
-        BookingQueryService bookingQueryService = new BookingQueryService(bookingRepository);
-
-        BookingApi api = new BookingApi(bookingPlacing, bookingQueryService);
-        api.configure(config);
     }
 
     private HandlePaymentResultFromPayment createHandlePaymentResultFromPayment() {

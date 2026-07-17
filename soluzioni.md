@@ -318,3 +318,34 @@ Regole AFF aggiunte: `modulesMustNotExposeIntegrationHandlers` (nessun metodo pu
 
 - *Mantenere handler e adapter pubblici usati dal composition root*: è il problema stesso.
 - *Event bus globale condiviso tra i moduli*: accoppia i BC sul bus e sui tipi pubblicati e rende il wiring meno esplicito.
+
+### 9. Contratto pubblico dei moduli: interfaccia `WebApi`
+
+**Soluzione**
+
+- Introdotta l'interfaccia comune `common.module.WebApi`; ogni controller HTTP (`BookingApi`, `GiftCardApi`, `PaymentApi`, `PaymentInternalApi`) la implementa.
+- Ogni modulo restituisce i propri adapter web come lista di `WebApi`; il composition root chiama `configure()` solo sull'interfaccia, che non è più parte del contratto pubblico dei moduli.
+- Le sottoscrizioni agli eventi interni sono state spostate nel costruttore dei moduli; `configure()` monta solo le rotte HTTP (e avvia il watcher di `payment`, ora campo immutabile costruito nel costruttore).
+- In TypeScript l'error handler JSON è stato spostato in `Application`.
+- Regole AFF aggiunte in `ModuleDefinitionRulesTest` a presidio del contratto.
+
+**Motivazione**
+
+Il composition root si appoggia a una superficie pubblica minima, esplicita e verificabile dalle AFF: i moduli sono scatole opache che espongono solo `WebApi` e i metodi di sottoscrizione semantica.
+
+**Alternative considerate**
+
+- *Convenzione sul naming senza interfaccia (AFF sui nomi delle classi)*: fragile e meno esplicita di un contratto compilabile.
+- *Framework di dependency injection*: contro la minimalità del progetto (wiring manuale deliberato).
+
+---
+
+## Questione aperta
+
+`PaymentModule.requestRefund` accede direttamente al repository per cercare il pagamento da rimborsare. Tecnicamente è un gateway di integrazione, ma la query potrebbe essere spostata in un application service dedicato per maggiore coesione. Non bloccante per il workshop.
+
+---
+
+## Evoluzioni future
+
+Il branch `feature/usecase-aff-rule` contiene un'ulteriore evoluzione: una regola `useCasesMustImplementUseCase` che rileva come `PaymentExpiring`, `TransactionAccepting` e `TransactionRejecting` siano in realtà `EventSubscriber`, non use case. Apre il discorso su dove collocare gli orchestratori event-driven e su come distinguere use case, servizi applicativi ed event handler.

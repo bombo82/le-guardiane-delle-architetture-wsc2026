@@ -1,11 +1,13 @@
 // Composition root condiviso tra main.ts e i test E2E.
 // Accetta esplicitamente i database per mantenere i test isolati.
 
-import type { Express } from 'express';
+import type { Express, ErrorRequestHandler } from 'express';
 import Database from 'better-sqlite3';
 import { BookingModule } from './booking/module.js';
 import { GiftCardModule } from './giftcard/module.js';
 import { PaymentModule } from './payment/module.js';
+import { DependencyNotProvidedError } from '@/common/errors/dependencyNotProvidedError.js';
+import { IllegalArgumentError } from '@/common/errors/illegalArgumentError.js';
 import { requireDependency } from '@/common/utils/requireDependency.js';
 
 export class Application {
@@ -34,8 +36,8 @@ export class Application {
   }
 
   private wirePaymentResults(): void {
-    this._paymentModule.onPaymentResult((event) => this._bookingModule.onPaymentResult(event));
-    this._paymentModule.onPaymentResult((event) => this._giftCardModule.onPaymentResult(event));
+    this._paymentModule.onPaymentResult((event) => this._bookingModule.handlePaymentResult(event));
+    this._paymentModule.onPaymentResult((event) => this._giftCardModule.handlePaymentResult(event));
   }
 
   private wireBookingResults(): void {
@@ -51,9 +53,30 @@ export class Application {
   }
 
   configure(app: Express): void {
-    this._bookingModule.configure(app);
-    this._giftCardModule.configure(app);
-    this._paymentModule.configure(app);
+    this._bookingModule.webApis().forEach((api) => api.configure(app));
+    this._giftCardModule.webApis().forEach((api) => api.configure(app));
+    this._paymentModule.webApis().forEach((api) => api.configure(app));
+    this._paymentModule.start();
+    this.configureGlobalErrorHandling(app);
+  }
+
+  private configureGlobalErrorHandling(app: Express): void {
+    const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+      if (err instanceof SyntaxError && 'body' in err) {
+        res.status(400).send('request body is required');
+        return;
+      }
+      if (err instanceof IllegalArgumentError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      if (err instanceof DependencyNotProvidedError) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.status(500).json({ error: 'unexpected error' });
+    };
+    app.use(errorHandler);
   }
 
   stop(): void {

@@ -9,8 +9,8 @@
 
 | Implementazione | Test AFF totali | Falliti | Passati |
 |---|---|---|---|
-| Java | 43 | **0** | 43 |
-| TypeScript | 44 | **0** | 44 |
+| Java | 46 | **0** | 46 |
+| TypeScript | 46 | **0** | 46 |
 
 > I numeri includono le regole ArchUnit/TS su cross-BC dependencies, Published Language / ACL, hexagonal architecture, shape rules e domain/application purity per ciascun bounded context.
 
@@ -22,7 +22,7 @@ Tutte le relazioni cross-BC sono state disaccoppiate tramite **Published Languag
 
 Layer interni esagonali e shape rules sono **tutti a posto**.
 
-> ✅ La violazione relativa al **Composition Root** è stata risolta in entrambe le implementazioni: `Application` dipende ora solo dalla superficie pubblica dei moduli. Vedi sezione 4.
+> ✅ Sono state aggiunte **nuove regole AFF** sulla definizione dei moduli (sezione 5). Tutte le violazioni evidenziate sono state risolte: il campo `watcher` è `final`/`readonly`, le sottoscrizioni interne sono nel costruttore, l'error handler JSON è in `Application` e i moduli non dipendono più direttamente dai tipi di configurazione del framework (`JavalinConfig` / `Express`).
 
 ---
 
@@ -158,8 +158,8 @@ booking.domain.events.BookingResultEvents.BookingRefused
 
 | Regola AFF | Stato | BC coinvolto | Dettaglio |
 |---|---|---|---|
-| I moduli non devono esporre handler di integrazione nel loro contratto pubblico | ❌ Violata | `booking`, `giftcard` | `Application` accede direttamente agli handler concreti per registrare le reazioni cross-BC. |
-| Il composition root non deve dipendere dagli anti-corruption layer interni dei moduli | ❌ Violata | `booking`, `giftcard` | `Application` chiama direttamente gli adapter in `application.integration.*.adapter` per tradurre eventi in command di integrazione. |
+| I moduli non devono esporre handler di integrazione nel loro contratto pubblico | ✅ Risolta | `booking`, `giftcard` | I moduli espongono ora metodi di sottoscrizione semantici. |
+| Il composition root non deve dipendere dagli anti-corruption layer interni dei moduli | ✅ Risolta | `booking`, `giftcard` | `Application` dipende solo dalla superficie pubblica dei moduli e dalla Published Language di `payment`. |
 
 ### 4.1 Esposizione degli handler
 
@@ -238,6 +238,78 @@ In questo modo:
 
 ---
 
+## 5. Definizione dei moduli
+
+| Regola AFF | Stato | BC coinvolto | Dettaglio |
+|---|---|---|---|
+| I campi dei moduli devono essere `final` / `readonly` | ✅ Risolta | `payment` | `PaymentModule` dichiara ora `watcher` / `_watcher` come `final`/`readonly`, costruito nel costruttore e avviato in `configure()`. |
+| I moduli non devono dipendere dai tipi di configurazione del framework | ✅ Risolta | `booking`, `giftcard`, `payment` | I moduli espongono `webApis()` che restituisce una lista di adapter web; ogni controller (`*Api`) implementa `WebApi`; il Composition Root itera sulla lista e chiama `configure(...)`. |
+| I metodi pubblici dei moduli non devono restituire tipi dei layer interni | ✅ OK | tutti | Nessun metodo pubblico restituisce handler, use case, repository o altri tipi interni; `webApis()` restituisce solo adapter web del layer `api`. |
+
+### 5.1 Campo `watcher` non final
+
+**Risolto.** In `PaymentModule` il watcher della scadenza pagamenti è ora costruito nel costruttore e avviato in `configure()`:
+
+```java
+// Java
+private final PaymentDeadlineWatcher watcher;
+```
+
+```ts
+// TypeScript
+private readonly _watcher: PaymentDeadlineWatcher;
+```
+
+In questo modo lo stato del modulo è immutabile dopo la costruzione e `stop()` può essere chiamato in sicurezza.
+
+### ✅ 5.2 Dipendenza diretta dal framework
+
+**Risolto.** Il metodo `configure(...)` è stato rimosso dal contratto pubblico del modulo. `ApplicationModule` dichiara un'interfaccia comune `WebApi` (in `common.module`) con il metodo `configure(...)`; ogni controller (`*Api`) implementa direttamente tale interfaccia e il modulo restituisce una lista di adapter web:
+
+```java
+// Java
+public interface WebApi {
+    void configure(JavalinConfig config);
+}
+
+public final class BookingApi implements WebApi { /* ... */ }
+public final class PaymentApi implements WebApi { /* ... */ }
+public final class PaymentInternalApi implements WebApi { /* ... */ }
+```
+
+```ts
+// TypeScript
+export interface WebApi {
+  configure(app: Express): void;
+}
+
+export class BookingApi implements WebApi { /* ... */ }
+export class PaymentApi implements WebApi { /* ... */ }
+export class PaymentInternalApi implements WebApi { /* ... */ }
+```
+
+Il Composition Root itera sulla lista restituita da ciascun modulo e chiama `configure(...)` su ogni adapter:
+
+```java
+// Java
+bookingModule.webApis().forEach(api -> api.configure(config));
+giftCardModule.webApis().forEach(api -> api.configure(config));
+paymentModule.webApis().forEach(api -> api.configure(config));
+paymentModule.start();
+```
+
+```ts
+// TypeScript
+this._bookingModule.webApis().forEach((api) => api.configure(app));
+this._giftCardModule.webApis().forEach((api) => api.configure(app));
+this._paymentModule.webApis().forEach((api) => api.configure(app));
+this._paymentModule.start();
+```
+
+In questo modo la facciata del modulo non dipende più direttamente da `JavalinConfig` / `Express`; la dipendenza dal framework è spostata sui singoli controller, che il Composition Root configura esplicitamente uno per uno.
+
+---
+
 ## Rappresentazione grafica ad alto livello
 
 ```text
@@ -312,5 +384,6 @@ Tutte le relazioni cross-BC sono ora protette da PL + ACL. Un refactor interno a
 
 - In Java e in TypeScript la violazione sul Composition Root è **stata risolta**: le regole `CompositionRootArchitectureTest` / `compositionRootArchitecture.test.ts` sono ora verdi.
 - Non rimangono violazioni architetturali cross-BC nel branch `solutions`.
+- Sono state introdotte regole AFF sulla **definizione dei moduli** (`ModuleDefinitionRulesTest` / `moduleDefinitionArchitecture.test.ts`). Tutte le violazioni evidenziate sono state risolte: campo `watcher` `final`/`readonly`, sottoscrizioni interne nel costruttore, error handler JSON in `Application` e dipendenza framework rimossa dalla facciata dei moduli tramite `webApi()` / `webApis()`.
 - Sono state aggiunte regole AFF esplicite per proteggere la Published Language di `payment`, in modo simmetrico a quanto già fatto per `booking`.
 - Il branch `feature/usecase-aff-rule` contiene invece l'evoluzione con la regola `useCasesMustImplementUseCase`, da approfondire in un momento successivo del workshop.

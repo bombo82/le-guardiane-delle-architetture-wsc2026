@@ -1,10 +1,11 @@
 package it.giannibombelli.wsc2026.common.module;
 
-import io.javalin.config.JavalinConfig;
 import org.flywaydb.core.Flyway;
 import org.sqlite.SQLiteDataSource;
 
 import javax.sql.DataSource;
+import java.io.IOException;
+import java.util.List;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -20,19 +21,15 @@ public abstract class ApplicationModule {
         return ds;
     }
 
-    public abstract void configure(JavalinConfig config);
+    public abstract List<WebApi> webApis();
 
-    /**
-     * Override this method if clean-up is needed during an application shutdown.
-     * For example, shutdown scheduled executors or close resources.
-     */
     public void stop() {
     }
 
     protected static void ensureDataDirectoryExists(String moduleName) {
         try {
             Files.createDirectories(Path.of("data", moduleName));
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException(String.format("Failed to create data/%s", moduleName), e);
         }
     }

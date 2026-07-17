@@ -14,8 +14,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Test black-box del contratto HTTP; i payment sono creati tramite l'endpoint interno
- * per mantenere il test al boundary HTTP.
+ * I payment sono creati tramite l'endpoint interno per mantenere il test al boundary HTTP.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PaymentRequestApiTest {
@@ -27,7 +26,7 @@ class PaymentRequestApiTest {
         final DataSource dataSource = DatabaseSetup.initializeFileDb("payment", getClass().getSimpleName());
         PaymentModule module = new PaymentModule(dataSource);
 
-        javalin.start(module::configure);
+        javalin.start(config -> module.webApis().forEach(api -> api.configure(config)));
     }
 
     @AfterAll

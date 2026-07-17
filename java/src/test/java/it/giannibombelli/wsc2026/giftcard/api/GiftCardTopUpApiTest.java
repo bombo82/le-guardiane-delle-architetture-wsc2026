@@ -13,8 +13,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Test black-box del contratto HTTP; le gift card sono create tramite l'endpoint pubblico
- * per mantenere il test al boundary HTTP.
+ * Le gift card sono create tramite l'endpoint pubblico per mantenere il test al boundary HTTP.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class GiftCardTopUpApiTest {
@@ -26,7 +25,7 @@ class GiftCardTopUpApiTest {
         final DataSource dataSource = DatabaseSetup.initializeFileDb("giftcard", getClass().getSimpleName());
         GiftCardModule module = new GiftCardModule(dataSource);
 
-        javalin.start(module::configure);
+        javalin.start(config -> module.webApis().forEach(api -> api.configure(config)));
     }
 
     @AfterAll
@@ -65,7 +64,7 @@ class GiftCardTopUpApiTest {
 
             GiftCardResponse readModel = JSON.readValue(response.body(), GiftCardResponse.class);
             assertThat(readModel.id()).isEqualTo(UUID.fromString(location.substring(location.lastIndexOf('/') + 1)));
-            // Critical didactic signal: balance has NOT increased — the top-up is only requested (pending external payment)
+            // Il saldo NON aumenta: la ricarica è solo richiesta, in attesa del pagamento esterno
             assertThat(readModel.balance()).isEqualByComparingTo(BigDecimal.ZERO);
         }
 

@@ -11,7 +11,7 @@ describe('GiftCardIssuanceApi', () => {
   beforeAll(() => {
     const database = DatabaseSetup.initializeFileDb('giftcard', 'GiftCardIssuanceApiTest');
     module = new GiftCardModule(database);
-    module.configure(app);
+    module.webApis().forEach((api) => api.configure(app));
   });
 
   describe('post issuance', () => {

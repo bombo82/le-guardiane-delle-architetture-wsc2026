@@ -2,13 +2,13 @@ package it.giannibombelli.wsc2026.payment;
 
 import it.giannibombelli.wsc2026.common.utils.Require;
 
-import io.javalin.config.JavalinConfig;
 import it.giannibombelli.wsc2026.common.application.events.EventBus;
 import it.giannibombelli.wsc2026.common.application.events.EventSubscriber;
 import it.giannibombelli.wsc2026.common.domain.identity.EntityId;
 import it.giannibombelli.wsc2026.common.domain.primitive.ClientReference;
 import it.giannibombelli.wsc2026.common.domain.primitive.Timestamp;
 import it.giannibombelli.wsc2026.common.module.ApplicationModule;
+import it.giannibombelli.wsc2026.common.module.WebApi;
 import it.giannibombelli.wsc2026.payment.api.PaymentApi;
 import it.giannibombelli.wsc2026.payment.api.PaymentInternalApi;
 import it.giannibombelli.wsc2026.payment.application.query.PaymentFinder;
@@ -49,8 +49,9 @@ public final class PaymentModule extends ApplicationModule {
     private final EventBus<PaymentEvent> eventBus;
     private final PaymentRequesting paymentRequesting;
     private final RefundRequesting refundRequesting;
+    private final PaymentProcessing paymentProcessing;
+    private final PaymentDeadlineWatcher watcher;
     private final List<Consumer<PaymentResultIntegrationEvent>> paymentResultIntegrationHandlers;
-    private PaymentDeadlineWatcher watcher;
 
     public PaymentModule(DataSource dataSource) {
         Require.requireDependency(dataSource, "dataSource");
@@ -59,7 +60,19 @@ public final class PaymentModule extends ApplicationModule {
         this.paymentResultIntegrationHandlers = new ArrayList<>();
         this.paymentRequesting = new PaymentRequesting(paymentRepository, eventBus);
         this.refundRequesting = new RefundRequesting(paymentRepository, eventBus);
+
+        this.paymentProcessing = createPaymentProcessing();
+        this.watcher = createWatcher();
         registerCrossBcResultHandlers();
+    }
+
+    @Override
+    public List<WebApi> webApis() {
+        PaymentFinder paymentFinder = new PaymentFinder(paymentRepository);
+        return List.of(
+            new PaymentApi(paymentFinder, paymentProcessing),
+            new PaymentInternalApi(paymentRequesting, paymentFinder)
+        );
     }
 
     private void registerCrossBcResultHandlers() {
@@ -84,6 +97,37 @@ public final class PaymentModule extends ApplicationModule {
                         event.clientReference().value().toString(), event.amount());
                 paymentResultIntegrationHandlers.forEach(h -> h.accept(integrationEvent));
             });
+    }
+
+    private PaymentProcessing createPaymentProcessing() {
+        PaymentCompletion paymentCompletion = new PaymentCompletion();
+        PaymentRejection paymentRejection = new PaymentRejection();
+        PaymentExpiration paymentExpiration = new PaymentExpiration();
+        TransactionRefund transactionRefund = new TransactionRefund();
+
+        TransactionAccepting transactionAccepting = new TransactionAccepting(paymentRepository, eventBus, paymentCompletion);
+        TransactionRejecting transactionRejecting = new TransactionRejecting(paymentRepository, eventBus, paymentRejection);
+        PaymentExpiring paymentExpiring = new PaymentExpiring(paymentRepository, eventBus, paymentExpiration);
+
+        eventBus.subscribe(TransactionAccepted.class, transactionAccepting);
+        eventBus.subscribe(TransactionRejected.class, transactionRejecting);
+        eventBus.subscribe(PaymentDeadlineReached.class, paymentExpiring);
+
+        Map<String, PaymentProvider> providers = Map.of(
+            "PayPal", new PayPal(),
+            "Klarna", new Klarna(),
+            "GiftCard", new GiftCard()
+        );
+
+        RefundHandling refundHandling = new RefundHandling(paymentRepository, providers, transactionRefund, eventBus);
+        eventBus.subscribe(RefundRequested.class, refundHandling);
+
+        return new PaymentProcessing(paymentRepository, providers, eventBus);
+    }
+
+    private PaymentDeadlineWatcher createWatcher() {
+        PaymentExpiration paymentExpiration = new PaymentExpiration();
+        return new PaymentDeadlineWatcher(paymentRepository, paymentExpiration, eventBus);
     }
 
     public void onPaymentResult(Consumer<PaymentResultIntegrationEvent> handler) {
@@ -111,46 +155,11 @@ public final class PaymentModule extends ApplicationModule {
         refundRequesting.invoke(internalCommand);
     }
 
-    public void configure(JavalinConfig config) {
-        PaymentFinder paymentFinder = new PaymentFinder(paymentRepository);
-
-        PaymentCompletion paymentCompletion = new PaymentCompletion();
-        PaymentRejection paymentRejection = new PaymentRejection();
-        PaymentExpiration paymentExpiration = new PaymentExpiration();
-        TransactionRefund transactionRefund = new TransactionRefund();
-
-        TransactionAccepting transactionAccepting = new TransactionAccepting(paymentRepository, eventBus, paymentCompletion);
-        TransactionRejecting transactionRejecting = new TransactionRejecting(paymentRepository, eventBus, paymentRejection);
-        PaymentExpiring paymentExpiring = new PaymentExpiring(paymentRepository, eventBus, paymentExpiration);
-
-        eventBus.subscribe(TransactionAccepted.class, transactionAccepting);
-        eventBus.subscribe(TransactionRejected.class, transactionRejecting);
-        eventBus.subscribe(PaymentDeadlineReached.class, paymentExpiring);
-
-        Map<String, PaymentProvider> providers = Map.of(
-            "PayPal", new PayPal(),
-            "Klarna", new Klarna(),
-            "GiftCard", new GiftCard()
-        );
-
-        RefundHandling refundHandling = new RefundHandling(paymentRepository, providers, transactionRefund, eventBus);
-        eventBus.subscribe(RefundRequested.class, refundHandling);
-
-        PaymentProcessing paymentProcessing = new PaymentProcessing(paymentRepository, providers, eventBus);
-
-        PaymentApi api = new PaymentApi(paymentFinder, paymentProcessing);
-        api.configure(config);
-
-        PaymentInternalApi internalApi = new PaymentInternalApi(paymentRequesting, paymentFinder);
-        internalApi.configure(config);
-
-        watcher = new PaymentDeadlineWatcher(paymentRepository, paymentExpiration, eventBus);
+    public void start() {
         watcher.start();
     }
 
     public void stop() {
-        if (watcher != null) {
-            watcher.stop();
-        }
+        watcher.stop();
     }
 }

@@ -4,7 +4,10 @@ import io.javalin.Javalin;
 import io.javalin.json.JavalinJackson3;
 import io.javalin.openapi.plugin.OpenApiPlugin;
 import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
+import it.giannibombelli.wsc2026.booking.BookingModule;
 import it.giannibombelli.wsc2026.common.module.ApplicationModule;
+import it.giannibombelli.wsc2026.giftcard.GiftCardModule;
+import it.giannibombelli.wsc2026.payment.PaymentModule;
 
 import javax.sql.DataSource;
 
@@ -16,9 +19,9 @@ public final class Main {
     public static void main(String[] args) {
         int port = (args.length > 0) ? Integer.parseInt(args[0]) : 7070;
 
-        DataSource bookingDataSource = ApplicationModule.initializeDb("booking");
-        DataSource giftCardDataSource = ApplicationModule.initializeDb("giftcard");
-        DataSource paymentDataSource = ApplicationModule.initializeDb("payment");
+        DataSource bookingDataSource = BookingModule.initializeDb("booking");
+        DataSource giftCardDataSource = GiftCardModule.initializeDb("giftcard");
+        DataSource paymentDataSource = PaymentModule.initializeDb("payment");
 
         Application application = new Application(bookingDataSource, giftCardDataSource, paymentDataSource);
 

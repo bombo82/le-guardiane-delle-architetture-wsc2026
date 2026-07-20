@@ -340,12 +340,75 @@ Il composition root si appoggia a una superficie pubblica minima, esplicita e ve
 
 ---
 
-## Questione aperta
+## Questioni aperte
+
+### `PaymentModule.requestRefund` accede direttamente al repository
 
 `PaymentModule.requestRefund` accede direttamente al repository per cercare il pagamento da rimborsare. Tecnicamente è un gateway di integrazione, ma la query potrebbe essere spostata in un application service dedicato per maggiore coesione. Non bloccante per il workshop.
+
+### Gli orchestratori event-driven di `payment` non sono use case
+
+La regola `useCasesMustImplementUseCase` (shape rule attiva in tutti i BC, in Java e TypeScript) verifica che ogni classe concreta in `application/usecases` implementi `UseCase`. Per `payment` la regola è **rossa di proposito**: `PaymentExpiring`, `TransactionAccepting` e `TransactionRejecting` implementano `EventSubscriber`, non `UseCase` — reagiscono a un evento coordinando altri casi d'uso, senza esserne uno.
+
+La violazione è lasciata aperta deliberatamente: apre il discorso su dove collocare gli orchestratori event-driven e su come distinguere use case, servizi applicativi ed event handler.
 
 ---
 
 ## Evoluzioni future
 
-Il branch `feature/usecase-aff-rule` contiene un'ulteriore evoluzione: una regola `useCasesMustImplementUseCase` che rileva come `PaymentExpiring`, `TransactionAccepting` e `TransactionRejecting` siano in realtà `EventSubscriber`, non use case. Apre il discorso su dove collocare gli orchestratori event-driven e su come distinguere use case, servizi applicativi ed event handler.
+### Un percorso evolutivo in tre fasi
+
+La separazione tra Published Language e internals, già operata sul branch `solutions`, è la prima tappa di un percorso evolutivo più ampio: dalla convenzione al modulo fisico al servizio indipendente. Le prime due fasi sono refactoring all'interno della stessa unità di deployment; la terza è una migrazione vera e propria, perché attraversa il confine di processo e di rete.
+
+### Fase 1 — Contratto pubblico a package, presidiato dalle AFF
+
+Ogni BC espone un package pubblico contenente la propria Published Language (eventi e command di integrazione, solo tipi stabili); tutto il resto è internal. Il branch `solutions` ha già gettato le basi: la PL vive in package dedicati (`payment.integration`, `booking.integration.giftcard`) e regole AFF ne presidiano indipendenza e consumo (`paymentPublishedLanguageMustBeIndependent`, `paymentPublishedLanguageMustNotDependOnBooking/GiftCard`, `onlyBooking/GiftCardAclMayConsumePaymentPublishedLanguage`). Il passo ulteriore è una regola di confine generale: codice esterno a un BC può dipendere solo dal suo package pubblico.
+
+In questa fase le AFF svolgono il ruolo di *ratchet*: mentre i tipi vengono spostati nella PL, la regola impedisce che nuove dipendenze verso gli internals si insinuino nella codebase.
+
+### Fase 2 — Sottomoduli fisici: un SDK per BC
+
+Ogni package pubblico diventa un modulo a sé (`payment-sdk`, `booking-sdk`, `giftcard-sdk`): sottomoduli Gradle in Java, package di una pnpm workspace con `exports` rigorosi in TypeScript. Gli altri BC dipendono solo dagli SDK; gli internals non sono più raggiungibili.
+
+L'enforcement si sposta dal test al compilatore: la regola AFF di confine della fase 1 si *cancella*, perché il build la rende ridondante — la migliore fitness function è quella che non devi più scrivere. Restano in carico ad ArchUnit le regole interne ai BC (layering esagonale, naming), che i sottomoduli non coprono.
+
+### Fase 3 — Estrazione in microservizi
+
+Ogni BC diventa un processo avviato in modo indipendente, estraendo un BC alla volta (strangler fig; `payment` è il candidato naturale). Alcuni prerequisiti sono già soddisfatti: database-per-BC (le JOIN cross-BC sono fisicamente impossibili), modello reattivo a policy (evento → comando, già una coreografia a eventi in embrione), Published Language esplicita.
+
+Ciò che cambia rispetto alle fasi precedenti non è più un refactoring:
+
+- **Comunicazione**: un broker (Kafka, NATS, ...) sostituisce le sottoscrizioni in-process; la PL diventa schema di messaggi serializzati e versionati, perché i servizi non fanno più deploy insieme.
+- **Consistenza**: outbox pattern per la pubblicazione affidabile degli eventi, consumer idempotenti, retry, saghe al posto delle transazioni locali.
+- **Composition root**: si sdoppia — ogni servizio ha il proprio entrypoint.
+- **Failure mode e observability**: timeout, messaggi duplicati o persi, correlation id, health check, logging distribuito.
+
+Avendo due implementazioni della stessa PL (Java e TypeScript), servizi in linguaggi diversi possono parlarsi: la dimostrazione che il contratto — non il codice — è la vera frontiera tra i BC.
+
+### Il ruolo delle AFF lungo il percorso
+
+Le guardiane non spariscono: cambiano forma e punto di enforcement.
+
+| Fase | Confine tra BC | Layer interni |
+|---|---|---|
+| 1. Package + AFF | ArchUnit (test-time) | ArchUnit (test-time) |
+| 2. Sottomoduli | Compilatore / build (compile-time) | ArchUnit (test-time) |
+| 3. Microservizi | Contract test e verifica degli schemi (test-time) | ArchUnit (test-time) |
+
+In un'architettura a microservizi le AFF sui confini diventano **contract test**: la PL è pubblicata come schema (JSON Schema, Avro, Protobuf) e la compatibilità tra producer e consumer è verificata con consumer-driven contract test (es. Pact). Sono fitness function distribuite: stessa funzione — proteggere il confine — nuovo punto di enforcement. Trattandosi comunque di test automatizzati, è sensato eseguirli in CI, come già avviene per le altre AFF. Il messaggio portante del workshop sopravvive al cambio di architettura: l'architettura si protegge con verifiche automatizzate, ovunque quel confine viva.
+
+### Evoluzione dei payment provider
+
+Gli adapter `PayPal`, `Klarna` e `GiftCard` in `payment.infrastructure.providers` sono oggi stub che restituiscono sempre successo. Sostituirli con integrazioni reali richiede alcune attenzioni:
+
+- **Resilienza per-provider**: timeout, circuit breaker e bulkhead separati per ciascun adapter — il down di un provider non deve bloccare gli altri; retry con backoff solo sugli errori transitori.
+- **Il provider `GiftCard` è un'integrazione cross-BC travestita**: un adapter reale dovrebbe riscattare e accreditare punti nel BC `giftcard` — di fatto un flusso `payment → giftcard` che, per le regole del workshop, dovrebbe passare da Published Language + ACL e non da una chiamata in-process nascosta in un adapter.
+- **Anti-corruption stretto**: la porta `PaymentProvider` resta pulita (solo `UUID`, `Money`); i tipi degli SDK dei provider non devono attraversarla. Un'AFF può confinare gli import degli SDK esterni dentro `infrastructure/providers`.
+- **Semantica della porta da chiarire**: il parametro `providerReference` riceve oggi il `transactionId` da `PaymentCharging`; ridisegnando la porta va chiarito cosa rappresenta il riferimento esterno e chi lo genera.
+- **Money**: conversione in minor units (centesimi) e currency code sono responsabilità dell'adapter; nel dominio resta solo il value object `Money`.
+
+#### Come verificare queste attenzioni
+
+- **Regole ArchUnit sugli adapter**: pienamente valide, perché strutturali. "Anti-corruption stretto" è esso stesso una di queste regole: ogni adapter sta in `infrastructure/providers`, implementa `PaymentProvider`, e nessun tipo di un SDK esterno esce da quel package. Il provider `GiftCard` ne suggerisce una nuova della famiglia cross-BC: l'adapter può dipendere solo dalla Published Language di `giftcard` (`giftcard.integration..`), non dai suoi internals — simmetrica a `onlyBooking/GiftCardAclMayConsumePaymentPublishedLanguage`.
+- **Contract test della porta**: valido ma ridotto a verifica leggera di uniformità — mapping di `Success`/`Failure`, gestione di `Money`, semantica coerente del riferimento — perché la sua sostanza (idempotenza, tassonomia dei fallimenti, stati pending) riguarda attenzioni non trattate qui.
+- **Resilienza**: non verificabile con fitness function su codice o contratti — è una proprietà runtime. Si copre con fault-injection e integration test (WireMock con ritardi, Toxiproxy, ...), non con AFF.
